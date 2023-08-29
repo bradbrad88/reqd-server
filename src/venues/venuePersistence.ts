@@ -1,8 +1,8 @@
 import client from "../../config/db";
-import { createVenueInteractor } from "../domain/venueInteractor";
+import { createVenueInteractor, updateVenueInteractor } from "../domain/venueInteractor";
 
 export const getVenueDB = async (venue: string) => {
-  const foundVenue = await client.venue.findFirst({ where: { id: venue } });
+  const foundVenue = await client.venue.findFirstOrThrow({ where: { id: venue } });
   return foundVenue;
 };
 
@@ -13,11 +13,13 @@ export const createVenueDB = async (venueName: string) => {
 };
 
 export const updateVenueNameDB = async (venueId: string, venueName: string) => {
-  const updatedVenue = await client.venue.update({
-    data: { venueName },
+  const venue = await getVenueDB(venueId);
+  const updatedVenue = updateVenueInteractor(venue, venueName);
+  const savedVenue = await client.venue.update({
+    data: { venueName: updatedVenue.venueName },
     where: { id: venueId },
   });
-  return updatedVenue;
+  return savedVenue;
 };
 
 export const deleteVenueDB = async (venueId: string) => {
