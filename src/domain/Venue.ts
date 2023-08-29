@@ -34,9 +34,4 @@ export default class Venue {
     }
     return trimmedName;
   }
-
-  renameVenue(newName: string) {
-    this.validateVenueName(newName);
-    this.venueName = newName;
-  }
 }

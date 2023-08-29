@@ -7,6 +7,6 @@ export const createVenueInteractor = (venueName: string): Venue => {
 
 export const updateVenueInteractor = (currentVenue: VenueJson, newName: string): Venue => {
   const venue = new Venue(currentVenue);
-  venue.renameVenue(newName);
+  venue.venueName = newName;
   return venue;
 };
