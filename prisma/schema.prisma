@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Venue {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueName String      @map("venue_name")
+  Product   Product[]
+  Vendor    Vendor[]
+  VenueArea VenueArea[]
+  Order     Order[]
+
+  @@map("venues")
+}
+
+model Product {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName String @map("display_name")
+
+  venueId String @map("venue_id") @db.Uuid
+  venue   Venue  @relation(fields: [venueId], references: [id])
+
+  vendorId String @map("vendor_id") @db.Uuid
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+
+  ProductLocations ProductLocations[]
+
+  @@map("products")
+}
+
+model Vendor {
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vendorName    String @map("vendor_name")
+  repName       String @map("rep_name")
+  contactNumber String @map("contact_number")
+
+  venueId String @map("venue_id") @db.Uuid
+  venue   Venue  @relation(fields: [venueId], references: [id])
+
+  Product Product[]
+
+  @@map("vendors")
+}
+
+model VenueArea {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  venueId String @map("venue_id") @db.Uuid
+  venue   Venue  @relation(fields: [venueId], references: [id])
+
+  ProductLocations ProductLocations[]
+
+  @@map("venue_areas")
+}
+
+model ProductLocations {
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id])
+
+  areaId    String    @map("area_id") @db.Uuid
+  venueArea VenueArea @relation(fields: [areaId], references: [id])
+
+  parLevel Int @map("par_level")
+
+  @@id([productId, areaId])
+  @@map("product_locations")
+}
+
+model Order {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  venueId String @map("venue_id") @db.Uuid
+  venue   Venue  @relation(fields: [venueId], references: [id])
+
+  items Json @db.JsonB
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("orders")
+}

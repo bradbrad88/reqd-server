@@ -1,0 +1,51 @@
+version: "3.8"
+name: reqd
+services:
+  db:
+    image: postgres:15.2-bullseye
+    ports:
+      - 5432:5432
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    env_file: .env.development
+  pgadmin:
+    image: dpage/pgadmin4
+    # container_name: pgadmin
+    logging:
+      driver: none
+    depends_on:
+      - db
+    ports:
+      - "5555:80"
+    env_file: .env.development
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./config/pgservers.json:/pgadmin4/servers.json
+    restart: unless-stopped
+  # api:
+  #   build:
+  #     context: packages/server
+  #     target: dev
+  #   env_file: .env.development
+  #   environment:
+  #     - APP_ENV=development
+  #   depends_on:
+  #     - db
+  #   volumes:
+  #     - ./packages/server:/usr/src/app
+  #     - /usr/src/app/node_modules
+  #   ports:
+  #     - 3000:3000
+  # test:
+  #   build:
+  #     context: packages/server
+  #     target: test
+  #   environment:
+  #     - APP_ENV=development
+  #   volumes:
+  #     - ./packages/server:/usr/src/app
+  #     - /usr/src/app/node_modules
+volumes:
+  db-data:
+  pgadmin-data:
