@@ -22,14 +22,16 @@ model Venue {
 }
 
 model Product {
-  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName String @map("display_name")
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName String  @map("display_name")
+  size        Int?
+  measure     String?
 
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id])
 
-  vendorId String @map("vendor_id") @db.Uuid
-  vendor   Vendor @relation(fields: [vendorId], references: [id])
+  vendorId String? @map("vendor_id") @db.Uuid
+  vendor   Vendor? @relation(fields: [vendorId], references: [id], onUpdate: Cascade, onDelete: SetNull)
 
   ProductLocations ProductLocations[]
 
@@ -51,7 +53,8 @@ model Vendor {
 }
 
 model VenueArea {
-  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  areaName String @map("area_name")
 
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id])
@@ -63,12 +66,12 @@ model VenueArea {
 
 model ProductLocations {
   productId String  @map("product_id") @db.Uuid
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   areaId    String    @map("area_id") @db.Uuid
-  venueArea VenueArea @relation(fields: [areaId], references: [id])
+  venueArea VenueArea @relation(fields: [areaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  parLevel Int @map("par_level")
+  parLevel Int? @map("par_level")
 
   @@id([productId, areaId])
   @@map("product_locations")
