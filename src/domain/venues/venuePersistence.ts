@@ -1,5 +1,5 @@
-import client from "../../config/db";
-import { createVenueInteractor, updateVenueInteractor } from "../domain/venueInteractor";
+import client from "../../../config/db";
+import { createVenueInteractor, updateVenueInteractor } from "./venueInteractor";
 
 export const getVenueDB = async (venue: string) => {
   const foundVenue = await client.venue.findFirstOrThrow({ where: { id: venue } });

@@ -1,4 +1,4 @@
-import type { Controller } from "../types/IController";
+import type { Controller } from "../../types/IController";
 import {
   createVenueDB,
   deleteVenueDB,

@@ -1,6 +1,6 @@
-import type { OmitMethods } from "../types/utils";
+import type { Json } from "../../types/utils";
 
-export type VenueJson = OmitMethods<Venue>;
+export type VenueJson = Json<Venue>;
 
 export default class Venue {
   private _venueName!: string;
