@@ -6,6 +6,6 @@ import { createVenueController } from "../../domain/venues/venueControllers";
 const router = Router();
 
 router.use("/venue/:venueId", venueRoutes);
-router.post("/", expressAdaptor(createVenueController));
+router.post("/venue", expressAdaptor(createVenueController));
 
 export default router;
