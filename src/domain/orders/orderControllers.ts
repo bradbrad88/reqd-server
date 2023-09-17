@@ -31,12 +31,12 @@ export const createOrderController: Controller = async req => {
 export const setProductAmountController: Controller = async req => {
   const paramsSchema = z.object({ orderId: z.string() });
   const bodySchema = z.object({
+    productLocationId: z.string(),
     productId: z.string(),
-    areaId: z.string(),
     amount: z.number(),
   });
   const { orderId } = paramsSchema.parse(req.params);
-  const { amount, areaId, productId } = bodySchema.parse(req.body);
-  const res = await setProductAmountDB(orderId, productId, areaId, amount);
+  const { amount, productId, productLocationId } = bodySchema.parse(req.body);
+  const res = await setProductAmountDB(orderId, productId, productLocationId, amount);
   return res;
 };

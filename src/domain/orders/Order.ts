@@ -28,9 +28,9 @@ export default class Order {
     );
   }
 
-  setItemAmount(productId: string, areaId: string, amount: number) {
+  setItemAmount(productId: string, productLocationId: string, amount: number) {
     const product = this.getOrCreateProducts(productId);
-    product.setAreaAmount(areaId, amount);
+    product.setAreaAmount(productLocationId, amount);
   }
 
   removeProduct(productId: string) {
@@ -74,20 +74,20 @@ class OrderItem {
   }: PartialBy<PartialBy<OrderItemJson, "areaAmounts">, "totalAmount">) {
     this.productId = productId;
     this._areaAmounts = areaAmounts.map(
-      ({ areaId, amount }) => new AreaAmount(areaId, amount)
+      ({ productLocationId, amount }) => new AreaAmount(productLocationId, amount)
     );
   }
 
-  setAreaAmount(areaId: string, amount: number) {
-    const areaAmount = this._areaAmounts.find(a => a.areaId === areaId);
+  setAreaAmount(productLocationId: string, amount: number) {
+    const areaAmount = this._areaAmounts.find(a => a.productLocationId === productLocationId);
     if (!areaAmount) {
-      return this.createNewAreaAmount(areaId, amount);
+      return this.createNewAreaAmount(productLocationId, amount);
     }
     areaAmount.amount = amount;
   }
 
-  createNewAreaAmount(areaId: string, amount: number) {
-    const newAreaAmount = new AreaAmount(areaId, amount);
+  createNewAreaAmount(productLocationId: string, amount: number) {
+    const newAreaAmount = new AreaAmount(productLocationId, amount);
     this._areaAmounts.push(newAreaAmount);
   }
 
@@ -107,11 +107,11 @@ class OrderItem {
 type AreaAmountJson = Json<AreaAmount>;
 
 class AreaAmount {
-  constructor(public areaId: string, public amount: number) {}
+  constructor(public productLocationId: string, public amount: number) {}
 
   toJson(): AreaAmountJson {
     return {
-      areaId: this.areaId,
+      productLocationId: this.productLocationId,
       amount: this.amount,
     };
   }

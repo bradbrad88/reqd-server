@@ -6,7 +6,7 @@ const OrderItemsSchema = z
   .object({
     productId: z.string(),
     totalAmount: z.number(),
-    areaAmounts: z.object({ areaId: z.string(), amount: z.number() }).array(),
+    areaAmounts: z.object({ productLocationId: z.string(), amount: z.number() }).array(),
   })
   .array();
 
@@ -33,7 +33,7 @@ export const createOrderDB = async (venueId: string) => {
 export const setProductAmountDB = async (
   orderId: string,
   productId: string,
-  areaId: string,
+  productLocationId: string,
   amount: number
 ) => {
   const order = await client.order.findUniqueOrThrow({ where: { id: orderId } });
@@ -43,7 +43,7 @@ export const setProductAmountDB = async (
   const { id, ...updatedOrder } = setProductAmountInteractor(
     { ...order, items },
     product,
-    areaId,
+    productLocationId,
     amount
   );
   const res = await client.order.update({
