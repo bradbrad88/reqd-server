@@ -5,6 +5,7 @@ import {
   getProductDB,
   getVenueProductsDB,
   updateProductDetailsDB,
+  updateProductVendorDB,
 } from "./productPersistence";
 import type { Controller } from "../../types/IController";
 
@@ -54,20 +55,16 @@ export const getVenueProductsListController: Controller = async req => {
   return products;
 };
 
-// function transformObjectPropertiesToArrays<
-//   T extends { [key: string]: string | number | undefined | string[] | number[] | null }
-// >(obj: T) {
-//   const keys = Object.keys(obj) as Array<keyof typeof obj>;
-//   keys.reduce((accumulator, current) => {}, {} as { [key in ]:  });
-// }
-
 export const createProductController: Controller = async req => {
   const paramsSchema = z.object({ venueId: z.string() });
   const bodyParams = z.object({
-    displayName: z.string(),
     vendorId: z.string(),
+    displayName: z.string(),
+    unitType: z.string(),
+    packageType: z.string(),
+    packageQuantity: z.number(),
     size: z.number().optional(),
-    measure: z.string().optional(),
+    unitOfMeasurement: z.string().optional(),
   });
   const validatedParams = paramsSchema.parse(req.params);
   const validatedBody = bodyParams.parse(req.body);
@@ -86,11 +83,25 @@ export const updateProductDetailsController: Controller = async req => {
   const paramsSchema = z.object({ productId: z.string() });
   const bodySchema = z.object({
     displayName: z.string().optional(),
+    unitType: z.string().optional(),
+    packageType: z.string().optional(),
+    packageQuantity: z.number().optional(),
     size: z.number().optional(),
-    measure: z.string().optional(),
+    unitOfMeasurement: z.string().optional(),
   });
   const { productId } = paramsSchema.parse(req.params);
   const details = bodySchema.parse(req.body);
   const product = await updateProductDetailsDB(productId, details);
+  return product;
+};
+
+export const updateProductVendorController: Controller = async req => {
+  const paramsSchema = z.object({ productId: z.string() });
+  const bodySchema = z.object({
+    vendorId: z.string().nullable(),
+  });
+  const { productId } = paramsSchema.parse(req.params);
+  const { vendorId } = bodySchema.parse(req.body);
+  const product = await updateProductVendorDB(productId, vendorId);
   return product;
 };
