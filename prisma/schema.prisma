@@ -22,10 +22,18 @@ model Venue {
 }
 
 model Product {
-  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName String  @map("display_name")
-  size        Int?
-  measure     String?
+  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName       String  @map("display_name")
+  // What does a unit of the product look like: Bottle / Stubby / Keg / Sachet / Tub
+  unitType          String  @map("unit_type")
+  // What does the product ship in: Carton / Keg / Box / Tub
+  packageType       String  @map("package_type")
+  // How many unit types in a package type eg: 24 for carton of beer. A keg would simply be 1 - unless ordering kegs by the pallet
+  packageQuantity   Int     @map("package_quantity")
+  // Numerical size. A 600mL bottle of soft-drink would be 600 
+  size              Int?
+  // Related to size: g / mL 
+  unitOfMeasurement String? @map("unit_of_measurement")
 
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id])
@@ -65,15 +73,16 @@ model VenueArea {
 }
 
 model ProductLocations {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sortedOrder Int    @map("sorted_order")
+  parLevel    Int?   @map("par_level")
+
   productId String  @map("product_id") @db.Uuid
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   areaId    String    @map("area_id") @db.Uuid
   venueArea VenueArea @relation(fields: [areaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  parLevel Int? @map("par_level")
-
-  @@id([productId, areaId])
   @@map("product_locations")
 }
 
@@ -89,4 +98,16 @@ model Order {
   updatedAt DateTime @default(now()) @map("updated_at")
 
   @@map("orders")
+}
+
+model UnitType {
+  unitType String @id @map("unit_type")
+}
+
+model PackageType {
+  packageType String @id @map("package_type")
+}
+
+model UnitOfMeasurement {
+  unitOfMeasurement String @id @map("unit_of_measurement")
 }
