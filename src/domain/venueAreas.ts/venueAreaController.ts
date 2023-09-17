@@ -8,6 +8,7 @@ import {
   getVenueAreaProductsDB,
   getVenueAreasDB,
   removeProductFromVenueAreaDB,
+  setProductLocationParLevelDB,
 } from "./venueAreaPersistence";
 
 export const createVenueAreaController: Controller = async req => {
@@ -25,7 +26,7 @@ export const createVenueAreaController: Controller = async req => {
 
 export const getVenueAreaController: Controller = async req => {
   const schema = z.object({ venueId: z.string(), areaId: z.string() });
-  const { areaId, venueId } = schema.parse(req.params);
+  const { areaId } = schema.parse(req.params);
   return await getVenueAreaDB(areaId);
 };
 
@@ -49,17 +50,27 @@ export const getVenueAreaProductsController: Controller = async req => {
 };
 
 export const addProductToVenueAreaController: Controller = async req => {
-  const bodySchema = z.object({ productId: z.string(), parLevel: z.number().optional() });
+  const bodySchema = z.object({
+    productId: z.string(),
+    parLevel: z.number().optional(),
+    sortedOrder: z.number().optional(),
+  });
   const paramsSchema = z.object({ venueId: z.string(), areaId: z.string() });
-  const { productId, parLevel } = bodySchema.parse(req.body);
-  const { areaId } = paramsSchema.parse(req.params);
-  await addProductToVenueAreaDB({ areaId, productId, parLevel });
+  const { productId, parLevel, sortedOrder } = bodySchema.parse(req.body);
+  const { venueId, areaId } = paramsSchema.parse(req.params);
+  await addProductToVenueAreaDB({ areaId, productId, parLevel, sortedOrder });
 };
 
 export const removeProductFromAreaController: Controller = async req => {
-  const bodySchema = z.object({ productId: z.string() });
-  const paramsSchema = z.object({ venueId: z.string(), areaId: z.string() });
-  const { productId } = bodySchema.parse(req.body);
-  const { areaId } = paramsSchema.parse(req.params);
-  await removeProductFromVenueAreaDB({ areaId, productId });
+  const paramsSchema = z.object({ areaId: z.string(), productLocation: z.string() });
+  const { productLocation, areaId } = paramsSchema.parse(req.params);
+  await removeProductFromVenueAreaDB(productLocation, areaId);
+};
+
+export const setProductLocationParLevelController: Controller = async req => {
+  const paramsSchema = z.object({ areaId: z.string(), productLocation: z.string() });
+  const bodySchema = z.object({ parLevel: z.number().nullable() });
+  const { areaId, productLocation } = paramsSchema.parse(req.params);
+  const { parLevel } = bodySchema.parse(req.body);
+  return await setProductLocationParLevelDB(productLocation, parLevel, areaId);
 };
