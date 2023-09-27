@@ -37,10 +37,15 @@ export const getVenueAreaDB = async (areaId: string) => {
 };
 
 export const getVenueAreasDB = async (venueId: string) => {
-  return await client.venueArea.findMany({
+  const res = await client.venueArea.findMany({
     where: { venueId },
-    select: { id: true, areaName: true },
+    select: { id: true, areaName: true, ProductLocations: { select: { id: true } } },
   });
+  return res.map(area => ({
+    id: area.id,
+    areaName: area.areaName,
+    productLocations: area.ProductLocations,
+  }));
 };
 
 export const createVenueAreaDB = async (venueAreaData: VenueAreaJson) => {
