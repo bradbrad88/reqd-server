@@ -118,11 +118,13 @@ model OrderItem {
 }
 
 model UnitType {
-  unitType String @id @map("unit_type")
+  unitType String  @id @map("unit_type")
+  plural   String?
 }
 
 model PackageType {
-  packageType String @id @map("package_type")
+  packageType String  @id @map("package_type")
+  plural      String?
 }
 
 model UnitOfMeasurement {

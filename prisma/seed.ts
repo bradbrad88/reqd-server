@@ -15,8 +15,9 @@ async function seedUnitTypes() {
     { unitType: "bottle" },
     { unitType: "can" },
     { unitType: "keg" },
-    { unitType: "stubby" },
+    { unitType: "stubby", plural: "stubbies" },
     { unitType: "sachet" },
+    { unitType: "bag" },
   ];
   try {
     await client.unitType.deleteMany({});
@@ -33,9 +34,10 @@ async function seedPackageTypes() {
     const packageTypes = [
       { packageType: "carton" },
       { packageType: "keg" },
-      { packageType: "box" },
+      { packageType: "box", plural: "boxes" },
       { packageType: "packet" },
       { packageType: "pallet" },
+      { packageType: "bag" },
     ];
     await client.packageType.deleteMany({});
     await client.packageType.createMany({ data: packageTypes });
@@ -48,7 +50,11 @@ async function seedPackageTypes() {
 async function seedUnitOfMeasurements() {
   console.log("Seeding: Unit of Measurements");
   try {
-    const unitOfMeasurements = [{ unitOfMeasurement: "mL" }, { unitOfMeasurement: "g" }];
+    const unitOfMeasurements = [
+      { unitOfMeasurement: "mL" },
+      { unitOfMeasurement: "g" },
+      { unitOfMeasurement: "kg" },
+    ];
     await client.unitOfMeasurement.deleteMany({});
     await client.unitOfMeasurement.createMany({ data: unitOfMeasurements });
     console.log("Success: Unit of Measurements");
