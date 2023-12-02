@@ -22,18 +22,21 @@ model Venue {
 }
 
 model Product {
-  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName       String  @map("display_name")
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName         String             @map("display_name")
   // What does a unit of the product look like: Bottle / Stubby / Keg / Sachet / Tub
-  unitType          String  @map("unit_type")
+  unitTypeId          String             @map("unit_type")
+  UnitType            UnitType           @relation(fields: [unitTypeId], references: [value], onUpdate: Cascade)
   // What does the product ship in: Carton / Keg / Box / Tub
-  packageType       String  @map("package_type")
+  packageTypeId       String             @map("package_type_id")
+  PackageType         PackageType        @relation(fields: [packageTypeId], references: [value])
   // How many unit types in a package type eg: 24 for carton of beer. A keg would simply be 1 - unless ordering kegs by the pallet
-  packageQuantity   Int     @map("package_quantity")
+  packageQuantity     Int                @map("package_quantity")
   // Numerical size. A 600mL bottle of soft-drink would be 600 
-  size              Int?
+  size                Int?
   // Related to size: g / mL 
-  unitOfMeasurement String? @map("unit_of_measurement")
+  unitOfMeasurementId String?            @map("unit_of_measurement")
+  UnitOfMeasurement   UnitOfMeasurement? @relation(fields: [unitOfMeasurementId], references: [value], onUpdate: Cascade, onDelete: Cascade)
 
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id])
@@ -118,15 +121,18 @@ model OrderItem {
 }
 
 model UnitType {
-  unitType String  @id @map("unit_type")
-  plural   String?
+  value   String    @id @map("unit_type")
+  plural  String?
+  Product Product[]
 }
 
 model PackageType {
-  packageType String  @id @map("package_type")
-  plural      String?
+  value   String    @id @map("package_type")
+  plural  String?
+  Product Product[]
 }
 
 model UnitOfMeasurement {
-  unitOfMeasurement String @id @map("unit_of_measurement")
+  value   String    @id @map("unit_of_measurement")
+  Product Product[]
 }
