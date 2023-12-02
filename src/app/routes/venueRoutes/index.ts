@@ -13,14 +13,6 @@ import {
   getVendorsListController,
 } from "../../../domain/vendors/vendorControllers";
 import {
-  createProductController,
-  deleteProductController,
-  getProductController,
-  getVenueProductsListController,
-  updateProductDetailsController,
-  updateProductVendorController,
-} from "../../../domain/products/productControllers";
-import {
   addProductToVenueAreaController,
   createVenueAreaController,
   deleteVenueAreaController,
@@ -39,6 +31,7 @@ import {
 import { getUnitTypeController } from "../../../domain/scalars/unitTypeControllers";
 import { getPackageTypeController } from "../../../domain/scalars/packageTypeControllers";
 import { getUnitOfMeasurementController } from "../../../domain/scalars/unitOfMeasurementControllers";
+import { getProductRoutes } from "../../../domain/products/productControllers";
 
 const router = Router({ mergeParams: true });
 
@@ -50,12 +43,8 @@ router.get("/unit-types/list", expressAdaptor(getUnitTypeController));
 router.get("/package-types/list", expressAdaptor(getPackageTypeController));
 router.get("/unit-of-measurements/list", expressAdaptor(getUnitOfMeasurementController));
 
-router.get("/products/list", expressAdaptor(getVenueProductsListController));
-router.get("/products/detail/:productId", expressAdaptor(getProductController));
-router.post("/products", expressAdaptor(createProductController));
-router.put("/products/:productId", expressAdaptor(updateProductDetailsController));
-router.delete("/products/:productId", expressAdaptor(deleteProductController));
-router.put("/products/:productId/vendor", expressAdaptor(updateProductVendorController));
+const productRoutes = getProductRoutes(expressAdaptor);
+router.use("/products", productRoutes);
 
 router.get("/vendors/list", expressAdaptor(getVendorsListController));
 router.get("/vendors/detail/:vendorId", expressAdaptor(getVendorDetailController));

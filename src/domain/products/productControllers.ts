@@ -1,17 +1,18 @@
 import { z } from "zod";
-import { getProductById, getVenueProducts } from "../readModel/productQueries";
+import { Router } from "express";
 import Product from "./Product";
-import { PostgresProductRepository } from "./PostgresProductRepository";
-import type { Controller } from "../../types/IController";
+import { getProductById, getVenueProducts } from "../readModel/productQueries";
+import { getProductRepository } from "../../app/repository";
+import type { Controller, ControllerAdaptor } from "../../types/IController";
 
-export const getProductController: Controller = async req => {
+const getProductController: Controller = async req => {
   const schema = z.object({ productId: z.string() });
   const data = schema.parse(req.params);
   const product = await getProductById(data.productId);
   return product;
 };
 
-export const getVenueProductsListController: Controller = async req => {
+const getVenueProductsListController: Controller = async req => {
   const paramsSchema = z.object({ venueId: z.string() });
   const querySchema = z.object({
     vendorId: z.union([z.string(), z.string().array(), z.undefined()]),
@@ -46,11 +47,10 @@ export const getVenueProductsListController: Controller = async req => {
 
   const { venueId } = paramsSchema.parse(req.params);
   const products = await getVenueProducts(venueId, transformedFilters);
-  // const products = await getVenueProductsDB(venueId, transformedFilters);
   return products;
 };
 
-export const createProductController: Controller = async req => {
+const createProductController: Controller = async req => {
   const paramsSchema = z.object({ venueId: z.string() });
   const bodyParams = z.object({
     vendorId: z.string(),
@@ -64,19 +64,19 @@ export const createProductController: Controller = async req => {
   const validatedParams = paramsSchema.parse(req.params);
   const validatedBody = bodyParams.parse(req.body);
   const product = Product.createNewProduct({ ...validatedParams, ...validatedBody });
-  const repo = new PostgresProductRepository();
+  const repo = getProductRepository();
   await product.save(repo);
   return product.toJSON();
 };
 
-export const deleteProductController: Controller = async req => {
+const deleteProductController: Controller = async req => {
   const paramsSchema = z.object({ venueId: z.string(), productId: z.string() });
 
   const { productId, venueId } = paramsSchema.parse(req.params);
   // return await deleteProductDB(productId);
 };
 
-export const updateProductDetailsController: Controller = async req => {
+const updateProductDetailsController: Controller = async req => {
   const paramsSchema = z.object({ productId: z.string() });
   const bodySchema = z.object({
     displayName: z.string().optional(),
@@ -103,7 +103,7 @@ export const updateProductDetailsController: Controller = async req => {
       .optional(),
   });
   const { productId } = paramsSchema.parse(req.params);
-  const repo = new PostgresProductRepository();
+  const repo = getProductRepository();
   const product = await Product.reconstituteById(productId, repo);
   const {
     displayName,
@@ -122,21 +122,31 @@ export const updateProductDetailsController: Controller = async req => {
   if (packageQuantity !== undefined) product.packageQuantity = packageQuantity;
   if (size !== undefined) product.size = size;
   if (unitOfMeasurement !== undefined) product.unitOfMeasurement = unitOfMeasurement.value;
-  console.log(product);
   await product.save(repo);
   return product.toJSON();
 };
 
-export const updateProductVendorController: Controller = async req => {
+const updateProductVendorController: Controller = async req => {
   const paramsSchema = z.object({ productId: z.string() });
   const bodySchema = z.object({
     vendorId: z.string().nullable(),
   });
   const { productId } = paramsSchema.parse(req.params);
   const { vendorId } = bodySchema.parse(req.body);
-  const repo = new PostgresProductRepository();
+  const repo = getProductRepository();
   const product = await Product.reconstituteById(productId, repo);
   product.vendorId = vendorId;
   await product.save(repo);
   return product;
+};
+
+export const getProductRoutes = (controllerAdaptor: ControllerAdaptor) => {
+  const router = Router({ mergeParams: true });
+  router.get("/list", controllerAdaptor(getVenueProductsListController));
+  router.get("/detail/:productId", controllerAdaptor(getProductController));
+  router.post("/", controllerAdaptor(createProductController));
+  router.put("/:productId", controllerAdaptor(updateProductDetailsController));
+  router.delete("/:productId", controllerAdaptor(deleteProductController));
+  router.put("/:productId/vendor", controllerAdaptor(updateProductVendorController));
+  return router;
 };

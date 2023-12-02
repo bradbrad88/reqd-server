@@ -1,3 +1,5 @@
+import { Request, Response } from "express";
+
 export type HttpRequest = {
   body: unknown;
   query: unknown;
@@ -20,3 +22,7 @@ export type HttpRequest = {
 type HttpResponse = any;
 
 export type Controller = (request: HttpRequest) => Promise<HttpResponse>;
+
+export type ControllerAdaptor = (
+  controller: Controller
+) => (req: Request, res: Response) => void;
