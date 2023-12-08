@@ -11,57 +11,102 @@ datasource db {
 }
 
 model Venue {
-  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueName String      @map("venue_name")
-  Product   Product[]
-  Vendor    Vendor[]
-  VenueArea VenueArea[]
-  Order     Order[]
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueName   String        @map("venue_name")
+  Product     Product[]
+  Vendor      Vendor[]
+  VenueArea   VenueArea[]
+  Order       Order[]
+  VenueVendor VenueVendor[]
+  Inventory   Inventory[]
 
   @@map("venues")
 }
 
 model Product {
-  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName         String             @map("display_name")
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName String @map("display_name")
+
   // What does a unit of the product look like: Bottle / Stubby / Keg / Sachet / Tub
-  unitTypeId          String             @map("unit_type")
-  UnitType            UnitType           @relation(fields: [unitTypeId], references: [value], onUpdate: Cascade)
-  // What does the product ship in: Carton / Keg / Box / Tub
-  packageTypeId       String             @map("package_type_id")
-  PackageType         PackageType        @relation(fields: [packageTypeId], references: [value])
-  // How many unit types in a package type eg: 24 for carton of beer. A keg would simply be 1 - unless ordering kegs by the pallet
-  packageQuantity     Int                @map("package_quantity")
+  unitTypeId String   @map("unit_type")
+  UnitType   UnitType @relation(fields: [unitTypeId], references: [value], onUpdate: Cascade)
+
   // Numerical size. A 600mL bottle of soft-drink would be 600 
   size                Int?
   // Related to size: g / mL 
   unitOfMeasurementId String?            @map("unit_of_measurement")
   UnitOfMeasurement   UnitOfMeasurement? @relation(fields: [unitOfMeasurementId], references: [value], onUpdate: Cascade, onDelete: Cascade)
 
-  venueId String @map("venue_id") @db.Uuid
-  venue   Venue  @relation(fields: [venueId], references: [id])
+  venueId String? @map("venue_id") @db.Uuid
+  venue   Venue?  @relation(fields: [venueId], references: [id])
 
-  vendorId String? @map("vendor_id") @db.Uuid
-  vendor   Vendor? @relation(fields: [vendorId], references: [id], onUpdate: Cascade, onDelete: SetNull)
-
-  ProductLocations ProductLocations[]
-  OrderItem        OrderItem[]
+  OrderProductVendorType OrderProductVendorType[]
+  Inventory              Inventory[]
+  VendorRange            VendorRange[]
 
   @@map("products")
 }
 
+model Inventory {
+  venueId String @map("venue_id") @db.Uuid
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  defaultVendorProductId String?      @db.Uuid
+  defaultVendorProduct   VendorRange? @relation(fields: [defaultVendorProductId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@id([venueId, productId])
+  @@map("inventory")
+}
+
 model Vendor {
-  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  vendorName    String  @map("vendor_name")
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vendorName String  @map("vendor_name")
+  logo       String?
+  Venue      Venue?  @relation(fields: [venueId], references: [id])
+  venueId    String? @db.Uuid
+
+  VenueVendor VenueVendor[]
+
+  OrderProductVendorType OrderProductVendorType[]
+  VendorRange            VendorRange[]
+
+  @@map("vendors")
+}
+
+model VenueVendor {
+  venueId String @map("venue_id") @db.Uuid
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  vendorId String @map("vendor_id") @db.Uuid
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
   repName       String? @map("rep_name")
   contactNumber String? @map("contact_number")
 
-  venueId String @map("venue_id") @db.Uuid
-  venue   Venue  @relation(fields: [venueId], references: [id])
+  @@id([vendorId, venueId])
+  @@map("venue_vendors")
+}
 
-  Product Product[]
+model VendorRange {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  @@map("vendors")
+  vendorId String @db.Uuid
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  productId String  @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // A vendor can supply a product in different ways - by the carton or by the pallet etc. A venue should be able to select the method (as prices may vary and stock-on-hand constraints also) that most suits them.
+  packageTypeId String
+  packageType   PackageType @relation(fields: [packageTypeId], references: [value])
+
+  packageQuantity Int
+  Inventory       Inventory[]
+
+  @@map("vendor_products")
 }
 
 model VenueArea {
@@ -71,24 +116,9 @@ model VenueArea {
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id])
 
-  ProductLocations ProductLocations[]
+  storageSpaces Json @map("area_locations") @db.Json
 
   @@map("venue_areas")
-}
-
-model ProductLocations {
-  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sortedOrder Int    @map("sorted_order")
-  parLevel    Int?   @map("par_level")
-
-  productId String  @map("product_id") @db.Uuid
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  areaId    String      @map("area_id") @db.Uuid
-  venueArea VenueArea   @relation(fields: [areaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  OrderItem OrderItem[]
-
-  @@map("product_locations")
 }
 
 model Order {
@@ -97,27 +127,52 @@ model Order {
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id])
 
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @default(now()) @map("updated_at")
-  OrderItem OrderItem[]
+  createdAt              DateTime                 @default(now()) @map("created_at")
+  updatedAt              DateTime                 @default(now()) @map("updated_at")
+  OrderProductVendorType OrderProductVendorType[]
+  OrderProductAreaAmount OrderProductAreaAmount[]
 
   @@map("orders")
 }
 
-model OrderItem {
+model OrderProductVendorType {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
   orderId String @map("order_id") @db.Uuid
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  productLocationId String           @map("product_location_id") @db.Uuid
-  productLocation   ProductLocations @relation(fields: [productLocationId], references: [id])
 
   productId String  @map("product_id") @db.Uuid
   product   Product @relation(fields: [productId], references: [id])
 
-  quantity Int
+  vendorId               String                   @map("vendor_id") @db.Uuid
+  vendor                 Vendor                   @relation(fields: [vendorId], references: [id])
+  // Denormalise packageType and packageQuantity for reasons
+  packageTypeId          String                   @map("package_type_id")
+  packageType            PackageType              @relation(fields: [packageTypeId], references: [value])
+  packageQuantity        Int                      @map("package_quantity")
+  OrderProductAreaAmount OrderProductAreaAmount[]
 
-  @@id([orderId, productLocationId])
-  @@map("order_items")
+  @@unique([orderId, productId])
+  @@map("order_product_vendor_type")
+}
+
+model OrderProductAreaAmount {
+  orderProductVendorTypeId String                 @db.Uuid
+  orderProductVendorType   OrderProductVendorType @relation(fields: [orderProductVendorTypeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // orderId String @map("order_id") @db.Uuid
+  // order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Don't reference ProductLocation directly as there is no guarantee that location will still exist after the order is created. Denormalise location name.
+  productLocationId   String @map("product_location_id") @db.Uuid
+  productLocationName String @map("product_location_name")
+
+  quantity Int
+  Order    Order?  @relation(fields: [orderId], references: [id])
+  orderId  String? @db.Uuid
+
+  @@unique([orderProductVendorTypeId, productLocationId])
+  @@map("order_product_area_amount")
 }
 
 model UnitType {
@@ -127,9 +182,11 @@ model UnitType {
 }
 
 model PackageType {
-  value   String    @id @map("package_type")
-  plural  String?
-  Product Product[]
+  value  String  @id @map("package_type")
+  plural String?
+
+  OrderProductVendorType OrderProductVendorType[]
+  VendorRange            VendorRange[]
 }
 
 model UnitOfMeasurement {
