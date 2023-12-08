@@ -114,7 +114,7 @@ model VenueArea {
   areaName String @map("area_name")
 
   venueId String @map("venue_id") @db.Uuid
-  venue   Venue  @relation(fields: [venueId], references: [id])
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   storageSpaces Json @map("area_locations") @db.Json
 
