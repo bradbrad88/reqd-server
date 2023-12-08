@@ -8,6 +8,10 @@ export class AggregateRoot<IRepository extends Repository> {
   }
 
   async save(repository: IRepository) {
-    await repository.save(this);
+    return await repository.save(this);
+  }
+
+  async delete(repository: IRepository) {
+    return await repository.delete(this);
   }
 }
