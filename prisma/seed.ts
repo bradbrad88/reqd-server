@@ -1,17 +1,34 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import chalk from "chalk";
 
 const client = new PrismaClient();
 
 main();
 
 async function main() {
+  await deleteAll();
   await Promise.all([
     seedUnitTypes(),
     seedPackageTypes(),
     seedUnitOfMeasurements(),
     seedVenues(),
+    seedVendors(),
   ]);
+  await seedProducts();
+}
+
+async function deleteAll() {
+  console.log("Deleting data...");
+  await Promise.all([client.product.deleteMany({})]);
+  await Promise.all([
+    client.unitType.deleteMany({}),
+    client.unitOfMeasurement.deleteMany({}),
+    client.packageType.deleteMany({}),
+    client.venue.deleteMany({}),
+    client.vendor.deleteMany({}),
+  ]);
+  logSuccess("Data removed");
 }
 
 async function seedUnitTypes() {
@@ -25,9 +42,8 @@ async function seedUnitTypes() {
     { value: "bag" },
   ];
   try {
-    await client.unitType.deleteMany({});
     await client.unitType.createMany({ data: unitTypes });
-    console.log("Success: Unit Types");
+    logSuccess("Unit Types Succeeded");
   } catch (error) {
     console.log(error);
   }
@@ -44,9 +60,8 @@ async function seedPackageTypes() {
       { value: "pallet" },
       { value: "bag" },
     ];
-    await client.packageType.deleteMany({});
     await client.packageType.createMany({ data: packageTypes });
-    console.log("Success: Package Types");
+    logSuccess("Package Types Succeeded");
   } catch (error) {
     console.log(error);
   }
@@ -56,9 +71,8 @@ async function seedUnitOfMeasurements() {
   console.log("Seeding: Unit of Measurements");
   try {
     const unitOfMeasurements = [{ value: "mL" }, { value: "g" }, { value: "kg" }];
-    await client.unitOfMeasurement.deleteMany({});
     await client.unitOfMeasurement.createMany({ data: unitOfMeasurements });
-    console.log("Success: Unit of Measurements");
+    logSuccess("Unit of Measurements Succeeded");
   } catch (error) {
     console.log(error);
   }
@@ -72,8 +86,93 @@ async function seedVenues() {
       venueName: "My Hotel",
     };
     await client.venue.create({ data });
-    console.log("Success: Venues");
+    logSuccess("Venues Succeeded");
   } catch (error) {
     console.log(error);
   }
+}
+
+async function seedProducts() {
+  console.log("Seeding: Products");
+  try {
+    const data = [
+      {
+        id: "1eee023d-7155-43fa-9eae-92f16999ebbb",
+        displayName: "Coopers Sparkling Ale",
+        unitTypeId: "can",
+        size: 375,
+        unitOfMeasurementId: "mL",
+      },
+      {
+        id: "7347b299-0c9b-4e3f-bf6b-c931e3fa6ad6",
+        displayName: "Coopers Pale Ale",
+        unitTypeId: "can",
+        size: 375,
+        unitOfMeasurementId: "mL",
+      },
+      {
+        id: "75af7c82-aa4f-4afd-8476-50edafeca7e3",
+        displayName: "Coke",
+        unitTypeId: "can",
+        size: 375,
+        unitOfMeasurementId: "mL",
+      },
+      {
+        id: "532fe532-193e-4a49-9fc8-4a077a8ece4d",
+        displayName: "Sprite",
+        unitTypeId: "can",
+        size: 375,
+        unitOfMeasurementId: "mL",
+      },
+      {
+        id: "23f81f20-a79c-4d87-b872-a2e3883ad75d",
+        displayName: "Dark Roast Coffee",
+        unitTypeId: "bag",
+        size: 1000,
+        unitOfMeasurementId: "g",
+      },
+      {
+        id: "593b71d1-2bef-460a-a4f1-8a62f42dbcac",
+        displayName: "Little Creatures Pale Ale",
+        unitTypeId: "stubby",
+        size: 330,
+        unitOfMeasurementId: "mL",
+      },
+      {
+        id: "d0eab38e-84a8-47b2-8834-a5621c998e4f",
+        displayName: "Heineken",
+        unitTypeId: "stubby",
+        size: 330,
+        unitOfMeasurementId: "mL",
+      },
+    ];
+    await client.product.createMany({
+      data,
+    });
+    logSuccess("Products succeeded");
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function seedVendors() {
+  console.log("Seeding: Vendors");
+  const data = [
+    { id: "8f250d9b-027c-41ae-85bf-7542749b1b56", vendorName: "Lion Nathan" },
+    { id: "2f5cfec5-6faa-4714-b9a3-4142c3bfd4c5", vendorName: "Coke" },
+    { id: "f5a8084b-b504-4ac8-b77b-f7130587beba", vendorName: "Grinders" },
+    { id: "8dfe62e2-c29b-4b77-8b23-6b6586e30ae0", vendorName: "Coopers" },
+  ];
+  try {
+    await client.vendor.createMany({
+      data,
+    });
+    logSuccess("Vendors succeeded");
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+function logSuccess(msg: string) {
+  console.log(chalk.green(msg));
 }
