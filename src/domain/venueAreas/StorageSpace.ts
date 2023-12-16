@@ -29,8 +29,15 @@ export class StorageSpace {
     return this._sections.map(section => section.toJSON());
   }
 
-  addSection() {
-    this._sections.push(Section.create());
+  setSectionCount(count: number) {
+    for (let i = 0; i < count; i++) {
+      const section = this._sections[i];
+      if (!section) {
+        this._sections[i] = Section.create();
+        this._sections[i].setShelfCount(1);
+      }
+    }
+    this._sections.length = count;
     this.applyPositions();
   }
 

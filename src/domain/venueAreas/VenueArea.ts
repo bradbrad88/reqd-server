@@ -1,3 +1,4 @@
+import { v4 as uuid } from "uuid";
 import ValidationError from "../../errors/ValidationError";
 import { AggregateRoot } from "../writeModel/AggregateRoot";
 import { VenueAreaRepository } from "./VenueAreaRepository";
@@ -17,7 +18,7 @@ export type StorageLocation = {
 };
 
 export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
-  public id?: string;
+  public readonly id: string;
   public readonly venueId: string;
   private _areaName!: string;
   private _storageSpaces: Array<StorageSpace>;
@@ -44,13 +45,16 @@ export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
   }
 
   createStorageSpace(storageName: string) {
+    const existingSpace = this._storageSpaces.find(space => space.storageName === storageName);
+    if (existingSpace)
+      throw new Error("Storage Space already exists with name: " + storageName);
     const space = StorageSpace.create({ storageName });
     this._storageSpaces.push(space);
   }
 
-  addSection(storageName: string) {
+  setSectionCount(storageName: string, sectionCount: number) {
     const space = this.getStorageSpace(storageName);
-    space.addSection();
+    space.setSectionCount(sectionCount);
   }
 
   setShelfCount(storageName: string, section: number, shelves: number) {
@@ -108,7 +112,8 @@ export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
   }
 
   static create(venueArea: PartialBy<VenueAreaJson, "id">) {
-    return new VenueArea(venueArea);
+    const id = uuid();
+    return new VenueArea({ ...venueArea, id });
   }
 
   static async reconstituteById(id: string, repository: VenueAreaRepository) {
