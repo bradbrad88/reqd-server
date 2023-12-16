@@ -9,21 +9,22 @@ export type ProductJson = PartialBy<Json<Product>, "size">;
 export default class Product extends AggregateRoot<ProductRepository> {
   public id: string;
   private _displayName!: string;
-  private _venueId!: string;
-  private _vendorId!: string | null;
+  private _venueId!: string | null;
   private _unitType!: string;
-  private _packageType!: string;
-  private _packageQuantity!: number;
   private _size!: number | null;
   private _unitOfMeasurement!: string | null;
 
-  static createNewProduct(product: PartialBy<ProductJson, "id">) {
+  static create(product: PartialBy<ProductJson, "id">) {
     const id = uuid();
     return new Product({ ...product, id });
   }
 
   static async reconstituteById(id: string, repository: ProductRepository) {
     return await repository.findProductById(id);
+  }
+
+  static reconstitute(product: ProductJson) {
+    return new Product(product, false);
   }
 
   get displayName(): string {
@@ -34,22 +35,11 @@ export default class Product extends AggregateRoot<ProductRepository> {
     this._displayName = validatedName;
   }
 
-  get venueId(): string {
+  get venueId(): string | null {
     return this._venueId;
   }
-  set venueId(id: string) {
+  set venueId(id: string | null) {
     this._venueId = id;
-  }
-
-  get vendorId(): string | null {
-    return this._vendorId;
-  }
-  set vendorId(vendorId: string | null) {
-    if (typeof vendorId === "string" && vendorId.length < 1) {
-      this._vendorId = null;
-    } else {
-      this._vendorId = vendorId;
-    }
   }
 
   get unitType(): string {
@@ -57,21 +47,6 @@ export default class Product extends AggregateRoot<ProductRepository> {
   }
   set unitType(unitType: string) {
     this._unitType = unitType;
-  }
-
-  get packageType(): string {
-    return this._packageType;
-  }
-  set packageType(packageType: string) {
-    this._packageType = packageType;
-  }
-
-  get packageQuantity(): number {
-    return this._packageQuantity;
-  }
-  set packageQuantity(qty: number) {
-    NonNegativePolicy(qty);
-    this._packageQuantity = qty;
   }
 
   get size(): number | null {
@@ -88,27 +63,14 @@ export default class Product extends AggregateRoot<ProductRepository> {
     this._unitOfMeasurement = unitOfMeasurement;
   }
 
-  constructor(product: ProductJson, isNew = true) {
+  private constructor(product: ProductJson, isNew = true) {
     super();
     this._isNew = isNew;
-    const {
-      id,
-      venueId,
-      displayName,
-      vendorId,
-      unitType,
-      packageType,
-      packageQuantity,
-      size,
-      unitOfMeasurement,
-    } = product;
+    const { id, venueId, displayName, unitType, size, unitOfMeasurement } = product;
     this.id = id;
     this.venueId = venueId;
     this.displayName = displayName;
-    this.vendorId = vendorId;
     this.unitType = unitType;
-    this.packageType = packageType;
-    this.packageQuantity = packageQuantity;
     this.size = size;
     this.unitOfMeasurement = unitOfMeasurement;
   }
@@ -127,17 +89,9 @@ export default class Product extends AggregateRoot<ProductRepository> {
       id: this.id,
       displayName: this.displayName,
       venueId: this.venueId,
-      vendorId: this.vendorId,
       unitType: this.unitType,
-      packageType: this.packageType,
-      packageQuantity: this.packageQuantity,
       size: this.size,
       unitOfMeasurement: this.unitOfMeasurement,
     };
   }
-}
-
-function NonNegativePolicy(number: unknown) {
-  const num = Number(number);
-  if (num < 0) throw new Error("Non Negative Number Policy Failed: input is negative");
 }
