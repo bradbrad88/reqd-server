@@ -5,4 +5,5 @@ import VenueArea from "./VenueArea";
 export abstract class VenueAreaRepository implements Repository {
   abstract findById(id: string): Promise<VenueArea>;
   abstract save(venueArea: VenueArea): Promise<OperationResponse>;
+  abstract delete(venueArea: VenueArea): Promise<OperationResponse>;
 }

@@ -12,7 +12,7 @@ export class PostgresVenueAreaRepository implements VenueAreaRepository {
       venueId: res.venueId,
       storageSpaces: res.storageSpaces as VenueAreaJson["storageSpaces"],
     };
-    return VenueArea.create(transform);
+    return VenueArea.reconstitute(transform);
   }
 
   async save(venueArea: VenueArea): Promise<OperationResponse> {
@@ -28,6 +28,15 @@ export class PostgresVenueAreaRepository implements VenueAreaRepository {
       } else {
         await client.venueArea.update({ data, where: { id: venueArea.id } });
       }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+
+  async delete(venueArea: VenueArea): Promise<OperationResponse> {
+    try {
+      await client.venueArea.delete({ where: { id: venueArea.id } });
       return { success: true };
     } catch (error) {
       return { success: false, error };
