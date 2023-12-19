@@ -1,11 +1,11 @@
 import { Router } from "express";
 import venueRoutes from "./venueRoutes";
-import expressAdaptor from "../makeCallback";
-import { createVenueController } from "../../domain/venues/venueControllers";
-
+import adminRoutes from "./adminRoutes";
+import globalRoutes from "./globalRoutes";
 const router = Router();
 
 router.use("/venue/:venueId", venueRoutes);
-router.post("/venue", expressAdaptor(createVenueController));
+router.use("/", adminRoutes);
+router.use("/", globalRoutes);
 
 export default router;
