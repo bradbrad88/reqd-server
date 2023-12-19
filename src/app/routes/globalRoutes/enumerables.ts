@@ -4,7 +4,7 @@ import {
   getPackageTypesQuery,
   getUnitOfMeasurementsQuery,
   getUnitTypesQuery,
-} from "../../../domain/readModel/enumerablesQueries";
+} from "../../../domain/readModel";
 
 const getUnitTypes: Controller = async req => {
   return await getUnitTypesQuery();
