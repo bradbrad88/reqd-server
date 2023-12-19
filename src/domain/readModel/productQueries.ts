@@ -48,7 +48,7 @@ export const getGlobalProducts = async (filters: Filters, page: number, pageSize
     ).map(item => item.productId)
   );
   const products = res.map(product => ({
-    productId: product.id,
+    id: product.id,
     displayName: product.displayName,
     size: product.size,
     unitType: product.UnitType,
