@@ -30,13 +30,13 @@ const removeArea: Controller = async req => {
 
 const createStorageSpace: Controller = async req => {
   const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({ storageName: z.string() });
+  const bodySchema = z.object({ storageSpace: z.string() });
   const { venueAreaId } = paramsSchema.parse(req.params);
-  const { storageName } = bodySchema.parse(req.body);
+  const { storageSpace } = bodySchema.parse(req.body);
   const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.createStorageSpace(storageName);
-  venueArea.setSectionCount(storageName, 1);
-  venueArea.setShelfCount(storageName, 0, 1);
+  venueArea.createStorageSpace(storageSpace);
+  venueArea.setSectionCount(storageSpace, 1);
+  venueArea.setShelfCount(storageSpace, 0, 1);
   const res = await venueArea.save(repo);
   if (!res.success) throw res.error;
   return res;
@@ -44,11 +44,11 @@ const createStorageSpace: Controller = async req => {
 
 const setSectionCount: Controller = async req => {
   const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({ storageName: z.string(), sectionCount: z.number() });
+  const bodySchema = z.object({ storageSpace: z.string(), sectionCount: z.number() });
   const { venueAreaId } = paramsSchema.parse(req.params);
-  const { storageName, sectionCount } = bodySchema.parse(req.body);
+  const { storageSpace, sectionCount } = bodySchema.parse(req.body);
   const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.setSectionCount(storageName, sectionCount);
+  venueArea.setSectionCount(storageSpace, sectionCount);
   const res = await venueArea.save(repo);
   if (!res.success) throw res.error;
   return res;
@@ -57,14 +57,14 @@ const setSectionCount: Controller = async req => {
 const setShelfCount: Controller = async req => {
   const paramsSchema = z.object({ venueAreaId: z.string() });
   const bodySchema = z.object({
-    storageName: z.string(),
+    storageSpace: z.string(),
     section: z.number(),
     shelfCount: z.number(),
   });
   const { venueAreaId } = paramsSchema.parse(req.params);
-  const { storageName, section, shelfCount } = bodySchema.parse(req.body);
+  const { storageSpace, section, shelfCount } = bodySchema.parse(req.body);
   const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.setShelfCount(storageName, section, shelfCount);
+  venueArea.setShelfCount(storageSpace, section, shelfCount);
   const res = await venueArea.save(repo);
   if (!res.success) throw res.error;
   return res;
