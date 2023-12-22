@@ -10,13 +10,13 @@ type Filters = {
 export const getProductById = async (id: string) => {
   const product = await client.product.findUniqueOrThrow({
     where: { id },
-    include: { UnitType: true, UnitOfMeasurement: true },
+    include: { unitType: true, unitOfMeasurement: true },
   });
   const unitType = {
-    value: product.UnitType.value,
-    plural: product.UnitType.plural || product.UnitType.value + "s",
+    value: product.unitType.value,
+    plural: product.unitType.plural || product.unitType.value + "s",
   };
-  const unitOfMeasurement = { value: product.UnitOfMeasurement?.value };
+  const unitOfMeasurement = { value: product.unitOfMeasurement?.value };
   return {
     id: product.id,
     displayName: product.displayName,
@@ -35,7 +35,7 @@ export const getGlobalProducts = async (filters: Filters, page: number, pageSize
     client.product.count({ where: prismaFilters }),
     client.product.findMany({
       where: prismaFilters,
-      include: { UnitType: true, UnitOfMeasurement: true, Inventory: true },
+      include: { unitType: true, unitOfMeasurement: true, Inventory: true },
       take: pageSize,
       skip: (page - 1) * pageSize,
     }),
@@ -51,8 +51,8 @@ export const getGlobalProducts = async (filters: Filters, page: number, pageSize
     id: product.id,
     displayName: product.displayName,
     size: product.size,
-    unitType: product.UnitType,
-    unitOfMeasurement: product.UnitOfMeasurement,
+    unitType: product.unitType,
+    unitOfMeasurement: product.unitOfMeasurement,
     inInventory: inventory.has(product.id),
   }));
   return { products, count, page, pageSize };
