@@ -11,13 +11,13 @@ datasource db {
 }
 
 model Venue {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueName   String        @map("venue_name")
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueName   String            @map("venue_name")
   Product     Product[]
   Vendor      Vendor[]
   VenueArea   VenueArea[]
   Order       Order[]
-  VenueVendor VenueVendor[]
+  VenueVendor PreferredVendor[]
   Inventory   Inventory[]
 
   @@map("venues")
@@ -29,13 +29,13 @@ model Product {
 
   // What does a unit of the product look like: Bottle / Stubby / Keg / Sachet / Tub
   unitTypeId String   @map("unit_type")
-  UnitType   UnitType @relation(fields: [unitTypeId], references: [value], onUpdate: Cascade)
+  unitType   UnitType @relation(fields: [unitTypeId], references: [value], onUpdate: Cascade)
 
   // Numerical size. A 600mL bottle of soft-drink would be 600 
   size                Int?
   // Related to size: g / mL 
   unitOfMeasurementId String?            @map("unit_of_measurement")
-  UnitOfMeasurement   UnitOfMeasurement? @relation(fields: [unitOfMeasurementId], references: [value], onUpdate: Cascade, onDelete: Cascade)
+  unitOfMeasurement   UnitOfMeasurement? @relation(fields: [unitOfMeasurementId], references: [value], onUpdate: Cascade, onDelete: Cascade)
 
   venueId String? @map("venue_id") @db.Uuid
   venue   Venue?  @relation(fields: [venueId], references: [id])
@@ -48,16 +48,17 @@ model Product {
 }
 
 model Inventory {
-  venueId String @map("venue_id") @db.Uuid
-  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
   productId String  @map("product_id") @db.Uuid
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  venueId String @map("venue_id") @db.Uuid
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   defaultVendorProductId String?      @db.Uuid
   defaultVendorProduct   VendorRange? @relation(fields: [defaultVendorProductId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@id([venueId, productId])
+  @@index([venueId])
   @@map("inventory")
 }
 
@@ -68,15 +69,16 @@ model Vendor {
   Venue      Venue?  @relation(fields: [venueId], references: [id])
   venueId    String? @db.Uuid
 
-  VenueVendor VenueVendor[]
+  VenueVendor PreferredVendor[]
 
   OrderProductVendorType OrderProductVendorType[]
   VendorRange            VendorRange[]
 
+  @@index([venueId])
   @@map("vendors")
 }
 
-model VenueVendor {
+model PreferredVendor {
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -87,7 +89,8 @@ model VenueVendor {
   contactNumber String? @map("contact_number")
 
   @@id([vendorId, venueId])
-  @@map("venue_vendors")
+  @@index([venueId])
+  @@map("preferred_vendors")
 }
 
 model VendorRange {
@@ -118,6 +121,7 @@ model VenueArea {
 
   storageSpaces Json @map("area_locations") @db.Json
 
+  @@index([venueId])
   @@map("venue_areas")
 }
 
@@ -179,6 +183,8 @@ model UnitType {
   value   String    @id @map("unit_type")
   plural  String?
   Product Product[]
+
+  @@map("unit_type")
 }
 
 model PackageType {
@@ -187,9 +193,13 @@ model PackageType {
 
   OrderProductVendorType OrderProductVendorType[]
   VendorRange            VendorRange[]
+
+  @@map("package_type")
 }
 
 model UnitOfMeasurement {
   value   String    @id @map("unit_of_measurement")
   Product Product[]
+
+  @@map("unit_of_measurement")
 }
