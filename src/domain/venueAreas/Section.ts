@@ -36,6 +36,11 @@ export class Section {
     this.applyPositions();
   }
 
+  removeShelf(position: number) {
+    this._shelves.splice(position, 1);
+    if (this._shelves.length === 0) this.setShelfCount(1);
+  }
+
   applyPosition(position: number) {
     this._position = position;
   }
