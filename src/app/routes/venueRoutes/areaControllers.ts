@@ -15,7 +15,18 @@ const createArea: Controller = async req => {
   const venueArea = VenueArea.create({ venueId, areaName });
   const res = await venueArea.save(repo);
   if (!res.success) throw res.error;
-  console.log("Why");
+  return res;
+};
+
+const patchArea: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({ areaName: z.string().optional() });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { areaName } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  if (areaName) venueArea.areaName = areaName;
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
   return res;
 };
 
@@ -115,6 +126,68 @@ const updateSpot: Controller = async req => {
   return res;
 };
 
+const removeSpot: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    section: z.number(),
+    shelf: z.number(),
+    spot: z.number(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const location = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeSpot(location);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const removeShelf: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    section: z.number(),
+    shelf: z.number(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const location = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeShelf(location);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const removeSection: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    section: z.number(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const location = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeSection(location);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const removeStorageSpace: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const location = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeStorageSpace(location);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
 const getVenueAreaListController: Controller = async req => {
   const paramsSchema = z.object({ venueId: z.string() });
   const { venueId } = paramsSchema.parse(req.params);
@@ -132,12 +205,17 @@ const getVenueAreaDetailController: Controller = async req => {
 export const getAreaCommandRoutes = (controllerAdaptor: ControllerAdaptor) => {
   const router = Router({ mergeParams: true });
   router.post("/", controllerAdaptor(createArea));
+  router.patch("/:venueAreaId", controllerAdaptor(patchArea));
   router.delete("/:venueAreaId", controllerAdaptor(removeArea));
   router.post("/:venueAreaId", controllerAdaptor(createStorageSpace));
   router.put("/:venueAreaId/section-count", controllerAdaptor(setSectionCount));
   router.put("/:venueAreaId/shelf-count", controllerAdaptor(setShelfCount));
   router.post("/:venueAreaId/spot", controllerAdaptor(addSpot));
   router.put("/:venueAreaId/spot", controllerAdaptor(updateSpot));
+  router.put("/:venueAreaId/remove-spot", controllerAdaptor(removeSpot));
+  router.put("/:venueAreaId/remove-shelf", controllerAdaptor(removeShelf));
+  router.put("/:venueAreaId/remove-section", controllerAdaptor(removeSection));
+  router.put("/:venueAreaId/remove-storage-space", controllerAdaptor(removeStorageSpace));
   return router;
 };
 
