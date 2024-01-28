@@ -11,6 +11,9 @@ export class PostgresVenueAreaRepository implements VenueAreaRepository {
       areaName: res.areaName,
       venueId: res.venueId,
       storageSpaces: res.storageSpaces as VenueAreaJson["storageSpaces"],
+      currentIdSequence: res.currentIdSequence,
+      productLines: res.productLines as VenueAreaJson["productLines"],
+      storageSpaceLayout: res.storageSpaceLayout as VenueAreaJson["storageSpaceLayout"],
     };
     return VenueArea.reconstitute(transform);
   }
@@ -22,6 +25,9 @@ export class PostgresVenueAreaRepository implements VenueAreaRepository {
         venueId: venueArea.venueId,
         areaName: venueArea.areaName,
         storageSpaces: venueArea.storageSpaces,
+        storageSpaceLayout: venueArea.storageSpaceLayout,
+        productLines: venueArea.productLines,
+        currentIdSequence: venueArea.currentIdSequence,
       };
       if (venueArea.isNew()) {
         await client.venueArea.create({ data });

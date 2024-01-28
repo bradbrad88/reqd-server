@@ -8,49 +8,54 @@ export const getVenueAreas = async (venueId: string) => {
 
 export const getVenueAreaById = async (venueAreaId: string) => {
   const res = await client.venueArea.findUniqueOrThrow({ where: { id: venueAreaId } });
-  const spotSchema = z.object({
-    columnSpan: z.number(),
-    parLevel: z.number().nullish(),
-    productId: z.string().nullish(),
-    product: z.unknown(),
+  const storageSpaceLayoutSchema = z.string().array();
+  const productLineSchema = z.object({
+    id: z.string(),
+    productId: z.string().nullable(),
+    parLevel: z.number().int().gte(0).nullable(),
   });
-  const schema = z
-    .object({
-      storageName: z.string(),
-      sections: z
-        .object({
-          shelves: z
-            .object({
-              spots: spotSchema.array(),
-            })
-            .array(),
-        })
-        .array(),
-    })
-    .array();
-  const spaces = schema.parse(res.storageSpaces);
-  const spotMap = spaces.reduce((map, space) => {
-    space.sections.reduce((map, section) => {
-      section.shelves.reduce((map, shelf) => {
-        shelf.spots.reduce((map, spot) => {
-          if (spot.productId) {
-            if (map.has(spot.productId)) {
-              const arr = map.get(spot.productId)!;
-              arr.push(spot);
-            } else {
-              map.set(spot.productId, [spot]);
-            }
-          }
-          return map;
-        }, map);
-        return map;
-      }, map);
-      return map;
-    }, map);
-    return map;
-  }, new Map<string, z.infer<typeof spotSchema>[]>());
-  const products = await client.product.findMany({
-    where: { id: { in: Array.from(spotMap.keys()) } },
+  const spotSchema = z.object({
+    id: z.string(),
+    shelfId: z.string(),
+    columnWidth: z.number().int().gt(0),
+    stackHeight: z.number().int().gt(0),
+    productLine: z.string().nullable(),
+  });
+  const storageSpaceSchema = z.object({
+    storageName: z.string(),
+    sectionLayout: z.string().array(),
+    sections: z.record(
+      z.string(),
+      z.object({
+        id: z.string(),
+        shelfLayout: z.string().array(),
+      })
+    ),
+    shelves: z.record(
+      z.string(),
+      z.object({
+        id: z.string(),
+        spotLayout: z.string().array(),
+      })
+    ),
+    spots: z.record(z.string(), spotSchema),
+    currentIdSequence: z.number(),
+  });
+
+  const storageSpaceMap = z.record(z.string(), storageSpaceSchema);
+  const productLines = z.record(z.string(), productLineSchema).parse(res.productLines);
+  const productsPresent = Array.from(
+    Object.values(productLines).reduce((set, productLine) => {
+      if (productLine.productId) set.add(productLine.productId);
+      return set;
+    }, new Set<string>())
+  );
+
+  const storageSpaces = storageSpaceMap.parse(res.storageSpaces);
+  const storageSpaceLayout = storageSpaceLayoutSchema.parse(res.storageSpaceLayout);
+
+  const productArray = await client.product.findMany({
+    where: { id: { in: productsPresent } },
     select: {
       id: true,
       displayName: true,
@@ -61,14 +66,10 @@ export const getVenueAreaById = async (venueAreaId: string) => {
       unitTypeId: false,
     },
   });
-  const productMap = products.reduce((map, product) => {
-    map.set(product.id, product);
+  const products = productArray.reduce((map, product) => {
+    map[product.id] = product;
     return map;
-  }, new Map<string, { id: string; displayName: string; size: number | null; unitOfMeasurement: { value: string } | null; unitType: { value: string; plural: string | null } }>());
-  for (const [productId, spotArr] of spotMap.entries()) {
-    const product = productMap.get(productId)!;
-    spotArr.forEach(spot => (spot["product"] = product));
-  }
-
-  return { ...res, storageSpaces: spaces };
+  }, {} as Record<string, (typeof productArray)[number]>);
+  const qry = { ...res, storageSpaces, storageSpaceLayout, productLines, products };
+  return qry;
 };

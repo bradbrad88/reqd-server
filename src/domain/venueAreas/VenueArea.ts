@@ -3,36 +3,48 @@ import ValidationError from "../../errors/ValidationError";
 import { AggregateRoot } from "../writeModel/AggregateRoot";
 import { VenueAreaRepository } from "./VenueAreaRepository";
 import { StorageSpaceDetailedLayout } from "./StorageSpaceDetailedLayout";
+import { ProductLine, ProductLineJson } from "./ProductLine";
 
 import type { Json, PartialBy } from "../../types/utils";
-import type { StorageSpaceDetailedLayoutJson } from "./StorageSpaceDetailedLayout";
-import type { SpotJson } from "./Spot";
-import { Section } from "./Section";
+import type { EditSpot, StorageSpaceDetailedLayoutJson } from "./StorageSpaceDetailedLayout";
+import { SequentialIdGenerator } from "../../utils/SequentialIdGenerator";
 
-export type VenueAreaJson = PartialBy<Json<VenueArea>, "storageSpaces">;
+export type VenueAreaJson = Json<VenueArea>;
 
-export type StorageLocation = {
+type StorageSpaceMapJson = { [key: string]: StorageSpaceJson };
+
+type StorageSpaceMap = Map<string, StorageSpace>;
+
+type ProductLineMap = Map<string, ProductLine>;
+
+type ProductLineMapJson = { [key: string]: ProductLineJson };
+
+export type ProductLineLocation = ProductLineListLocation | ProductLineLayoutLocation;
+
+type ProductLineListLocation = {
   storageSpace: string;
-  section: number;
-  shelf: number;
-  spot: number;
+  index: number;
 };
+
+type ProductLineLayoutLocation = {
+  storageSpace: string;
+  spotId: string;
+};
+
+type StorageSpaceJson = StorageSpaceDetailedLayoutJson;
+
+type StorageSpace = StorageSpaceDetailedLayout;
+
+type StorageSpaceLayout = string[];
 
 export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
   public readonly id: string;
   public readonly venueId: string;
+  public storageSpaceLayout: StorageSpaceLayout;
   private _areaName!: string;
-  // The order of the storage spaces matters, so keep as an array instead of map
-  private _storageSpaces: Array<StorageSpaceDetailedLayout>;
-
-  private constructor(venueArea: VenueAreaJson, isNew = true) {
-    super();
-    this._isNew = isNew;
-    this.id = venueArea.id;
-    this.venueId = venueArea.venueId;
-    this.areaName = venueArea.areaName;
-    this._storageSpaces = this.constructStorageSpaces(venueArea.storageSpaces);
-  }
+  private _storageSpaces: StorageSpaceMap;
+  private _productLines: ProductLineMap;
+  private _idSequence: SequentialIdGenerator;
 
   public get areaName(): string {
     return this._areaName;
@@ -42,105 +54,215 @@ export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
     this._areaName = validatedName;
   }
 
-  get storageSpaces(): StorageSpaceDetailedLayoutJson[] {
-    return this._storageSpaces.map(space => space.toJSON());
+  get storageSpaces(): StorageSpaceMapJson {
+    const spaces: StorageSpaceMapJson = {};
+    for (const [id, space] of this._storageSpaces.entries()) {
+      spaces[id] = space.toJSON();
+    }
+    return spaces;
   }
 
-  createStorageSpace(storageName: string) {
-    const existingSpace = this._storageSpaces.find(space => space.storageName === storageName);
-    if (existingSpace)
+  get productLines(): ProductLineMapJson {
+    const productLines: ProductLineMapJson = {};
+    for (const [id, productLine] of this._productLines.entries()) {
+      productLines[id] = productLine;
+    }
+    return productLines;
+  }
+
+  get currentIdSequence() {
+    return this._idSequence.currentSequence;
+  }
+
+  private constructor(venueArea: VenueAreaJson, isNew = true) {
+    super();
+    this._isNew = isNew;
+    this.id = venueArea.id;
+    this.venueId = venueArea.venueId;
+    this.areaName = venueArea.areaName;
+    this.storageSpaceLayout = venueArea.storageSpaceLayout;
+    this._storageSpaces = this.constructStorageSpaces(venueArea.storageSpaces);
+    this._productLines = this.constructProductLines(venueArea.productLines);
+    this._idSequence = new SequentialIdGenerator(venueArea.currentIdSequence);
+  }
+
+  private constructStorageSpaces(spaces: StorageSpaceMapJson) {
+    const map = new Map<string, StorageSpace>();
+    for (const space in spaces) {
+      map.set(space, new StorageSpaceDetailedLayout(spaces[space]));
+    }
+    return map;
+  }
+  private constructProductLines(productLines: ProductLineMapJson) {
+    const map = new Map<string, ProductLine>();
+    for (const productLine in productLines) {
+      map.set(productLine, ProductLine.create(productLines[productLine]));
+    }
+    return map;
+  }
+
+  createStorageSpace(storageName: string, layoutType: "layout" | "list") {
+    if (this._storageSpaces.has(storageName))
       throw new Error("Storage Space already exists with name: " + storageName);
-    const space = StorageSpaceDetailedLayout.create({ storageName });
-    this._storageSpaces.push(space);
+    let space: StorageSpace;
+    switch (layoutType) {
+      case "layout":
+        space = StorageSpaceDetailedLayout.create(storageName);
+        break;
+      default:
+        throw new Error(
+          `Creation of storage space type: '${layoutType}' has not been implemented`
+        );
+    }
+    this._storageSpaces.set(space.storageName, space);
+    this.storageSpaceLayout.push(space.storageName);
   }
 
+  removeStorageSpace(storageName: string) {
+    const space = this._storageSpaces.get(storageName);
+    if (!space) throw new Error(`Couldn't find a storage space with name: '${storageName}'`);
+    this.storageSpaceLayout = this.storageSpaceLayout.filter(id => id !== storageName);
+    space.getProductLines().forEach(pl => {
+      this._productLines.delete(pl);
+    });
+    this._storageSpaces.delete(storageName);
+  }
+
+  renameStorageSpace(storageName: string, newName: string) {
+    const space = this._storageSpaces.get(storageName);
+    if (!space) throw new Error(`Couldn't find a storage space with name: '${storageName}'`);
+    space.storageName = newName;
+    this._storageSpaces.set(space.storageName, space);
+    this._storageSpaces.delete(storageName);
+    const spaceIndex = this.storageSpaceLayout.indexOf(storageName);
+    if (spaceIndex === -1)
+      throw new Error(`Storage space does not exist in storageSpaceLayout: '${storageName}'
+    `);
+    this.storageSpaceLayout.splice(spaceIndex, 1, space.storageName);
+  }
+
+  moveStorageSpace(storageName: string, newIndex: number) {
+    const index = this.storageSpaceLayout.indexOf(storageName);
+    if (index === -1)
+      throw new Error(`Couldn't find a storage space with name: '${storageName}'`);
+    this.storageSpaceLayout.splice(index, 1);
+    this.storageSpaceLayout.splice(newIndex, 0, storageName);
+  }
+
+  // Detailed Storage Space Layout
   setSectionCount(storageName: string, sectionCount: number) {
-    const space = this.getStorageSpace(storageName);
+    const space = this._storageSpaces.get(storageName);
+    if (!space) throw new Error("Couldn't find space with name: " + storageName);
     space.setSectionCount(sectionCount);
+    return space.sectionLayout;
   }
 
-  setShelfCount(storageName: string, section: number, shelves: number) {
-    const space = this._storageSpaces.find(space => space.storageName === storageName);
-    if (!space) throw new Error("Storage space not found");
-    space.setShelfCount(section, shelves);
+  setShelfCount(storageName: string, sectionId: string, count: number) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.setShelfCount(sectionId, count);
+    return Object.keys(space.shelves);
   }
 
-  addSpot(
-    location: { storageSpace: string; section: number; shelf: number },
-    spot: Partial<SpotJson>
-  ) {
-    const shelf = this.getShelf(location);
-    shelf.addSpot(spot);
+  setSpotCount(storageName: string, shelfId: string, count: number) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.setSpotCount(shelfId, count);
   }
 
-  changeSpotProduct(location: StorageLocation, productId: string | null) {
-    const spot = this.getSpot(location);
-    spot.productId = productId;
+  removeSection(storageName: string, sectionId: string) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.removeSection(sectionId);
   }
 
-  changeSpotParLevel(location: StorageLocation, parLevel: number) {
-    const spot = this.getSpot(location);
-    spot.parLevel = parLevel;
+  removeShelf(storageName: string, shelfId: string) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.removeShelf(shelfId);
   }
 
-  changeSpotColumnSpan(location: StorageLocation, columnSpan: number) {
-    const spot = this.getSpot(location);
-    spot.columnSpan = columnSpan;
+  removeSpot(storageName: string, spotId: string) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    const productLineId = space.removeSpot(spotId);
+    if (productLineId) this._productLines.delete(productLineId);
   }
 
-  removeSpot(location: StorageLocation) {
-    const shelf = this.getShelf(location);
-    shelf.removeSpot(location.spot);
+  moveSection(storageName: string, sectionId: string, newIndex: number) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.moveSection(sectionId, newIndex);
   }
 
-  removeShelf(location: Omit<StorageLocation, "spot">) {
-    const section = this.getSection(location);
-    section.removeShelf(location.shelf);
+  moveShelf(storageName: string, sectionId: string, shelfId: string, newIndex: number) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.moveShelf(sectionId, shelfId, newIndex);
   }
 
-  removeSection(location: Omit<StorageLocation, "spot" | "shelf">) {
-    const space = this.getStorageSpace(location.storageSpace);
-    space.removeSection(location.section);
+  moveSpot(storageName: string, spotId: string, shelfId: string, newIndex: number) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.moveSpot(spotId, shelfId, newIndex);
   }
 
-  removeStorageSpace(location: Omit<StorageLocation, "spot" | "shelf" | "section">) {
-    this._storageSpaces.filter(space => space.storageName !== location.storageSpace);
+  editSpot(storageName: string, spotId: string, vars: EditSpot) {
+    const space = this._getDetailedLayoutSpace(storageName);
+    space.editSpot(spotId, vars);
   }
 
-  private getSection(location: Omit<StorageLocation, "spot" | "shelf">): Section {
-    const space = this.getStorageSpace(location.storageSpace);
-    return space.getSection(location);
+  setProductLine(location: ProductLineLocation, productLine: Partial<ProductLineJson>) {
+    const space = this._storageSpaces.get(location.storageSpace);
+    if (!space) throw new Error(`Couldn't find space with name: '${location.storageSpace}'`);
+    if (space.layoutType === "layout") {
+      if ("index" in location) throw new Error("Wrong location type for this Storage Space");
+      const id = this._idSequence.consumeId("product-line");
+      const productId = productLine.productId || null;
+      const parLevel = productLine.parLevel || null;
+      const newProductLine = ProductLine.create({ id, productId, parLevel });
+      space.setProductLine(location.spotId, newProductLine.id);
+      this._productLines.set(newProductLine.id, newProductLine);
+    }
   }
 
-  private getShelf(location: Omit<StorageLocation, "spot">) {
-    const space = this.getStorageSpace(location.storageSpace);
-    return space.getShelf(location);
+  removeProductLine(location: ProductLineLocation) {
+    const space = this._storageSpaces.get(location.storageSpace);
+    if (!space) throw new Error(`Couldn't find space with name: '${location.storageSpace}'`);
+    if (space.layoutType === "layout") {
+      if ("index" in location) throw new Error("Wrong location type for this Storage Space");
+      const id = space.removeProductLine(location.spotId);
+      if (id) this._productLines.delete(id);
+    }
   }
 
-  private getSpot(location: StorageLocation) {
-    const space = this.getStorageSpace(location.storageSpace);
-    return space.getSpot(location);
+  editProductLine(productLineId: string, productLineOptions: Partial<ProductLineJson>) {
+    const { parLevel, productId } = productLineOptions;
+    const productLine = this._productLines.get(productLineId);
+    if (!productLine) throw new Error("Couldn't find product line of id: " + productLineId);
+    if (parLevel !== undefined) productLine.parLevel = parLevel;
+    if (productId !== undefined) productLine.productId = productId;
   }
 
-  private constructStorageSpaces(spaces: StorageSpaceDetailedLayoutJson[] = []) {
-    return spaces.map(space => new StorageSpaceDetailedLayout(space));
-  }
-
-  private getStorageSpace(storageName: string) {
-    const space = this._storageSpaces.find(space => space.storageName === storageName);
-    if (!space) throw new Error("Storage space not found with name: " + storageName);
+  private _getDetailedLayoutSpace(storageName: string) {
+    const space = this._storageSpaces.get(storageName);
+    if (!space) throw new Error("Couldn't find space with name: " + storageName);
+    if (!(space instanceof StorageSpaceDetailedLayout))
+      throw new Error("Can't remove section from this type of storage space");
     return space;
   }
 
-  static create(venueArea: PartialBy<VenueAreaJson, "id">) {
+  static create(
+    venueArea: PartialBy<
+      VenueAreaJson,
+      "id" | "storageSpaces" | "productLines" | "storageSpaceLayout" | "currentIdSequence"
+    >
+  ) {
     const id = uuid();
-    return new VenueArea({ ...venueArea, id });
+    return new VenueArea({
+      ...venueArea,
+      id,
+      storageSpaces: {},
+      storageSpaceLayout: [],
+      productLines: {},
+      currentIdSequence: 0,
+    });
   }
-
   static async reconstituteById(id: string, repository: VenueAreaRepository) {
     return await repository.findById(id);
   }
-
   static reconstitute(venueArea: VenueAreaJson) {
     return new VenueArea(venueArea, false);
   }
@@ -160,6 +282,9 @@ export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
       venueId: this.venueId,
       areaName: this.areaName,
       storageSpaces: this.storageSpaces,
+      productLines: this.productLines,
+      storageSpaceLayout: this.storageSpaceLayout,
+      currentIdSequence: this.currentIdSequence,
     };
   }
 }

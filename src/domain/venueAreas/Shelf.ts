@@ -1,68 +1,52 @@
-import { Json, PartialBy } from "../../types/utils";
-import { Spot, SpotJson } from "./Spot";
-import { StorageLocation } from "./VenueArea";
+import { Json } from "../../types/utils";
+import { moveArrayItem } from "../../utils/array";
 
-export type ShelfJson = PartialBy<Json<Shelf>, "spots">;
+export type ShelfJson = Json<Shelf>;
 
+type SpotLayout = string[];
 export class Shelf {
-  private _position!: number;
-  private _spots: Spot[];
+  public readonly id: string;
+  public sectionId: string;
+  public spotLayout: SpotLayout;
 
   constructor(shelf: ShelfJson) {
-    this.position = shelf.position;
-    this._spots = (shelf.spots || []).map(spot => new Spot(spot));
+    const { id, sectionId, spotLayout } = shelf;
+    this.id = id;
+    this.sectionId = sectionId;
+    this.spotLayout = spotLayout;
   }
 
-  get position(): number {
-    return this._position;
-  }
-  set position(position: number) {
-    this._position = position;
+  addSpot(spotId: string) {
+    this.spotLayout.push(spotId);
   }
 
-  get spots(): SpotJson[] {
-    return this._spots.map(spot => spot.toJSON());
+  insertSpot(spotId: string, index: number) {
+    this.spotLayout.splice(index, 0, spotId);
   }
 
-  addSpot(spot: Partial<SpotJson>) {
-    const newSpot = Spot.create(spot);
-    this._spots.push(newSpot);
-    this.applySpotPositions();
+  moveSpot(spotId: string, newIndex: number) {
+    const oldIndex = this.spotLayout.findIndex(id => id === spotId);
+    if (oldIndex == null) throw new Error("Couldn't find spot of id: " + spotId);
+    this.spotLayout = moveArrayItem(this.spotLayout, oldIndex, newIndex);
   }
 
-  applyPosition(position: number) {
-    this._position = position;
-  }
-
-  getSpot(location: StorageLocation) {
-    return this._getSpot(location.spot);
-  }
-
-  removeSpot(position: number) {
-    const spot = this._getSpot(position);
-    this._spots.splice(position, 1);
-    this.applySpotPositions();
-  }
-
-  private applySpotPositions() {
-    this._spots.forEach((spot, idx) => spot.assignPosition(idx));
-  }
-
-  private _getSpot(position: number) {
-    const spot = this._spots[position];
-    if (!spot) throw new Error("Spot does not exist");
-    return spot;
+  removeSpot(spotId: string) {
+    this.spotLayout = this.spotLayout.filter(id => id !== spotId);
   }
 
   toJSON(): ShelfJson {
     return {
-      position: this.position,
-      spots: this.spots,
+      id: this.id,
+      sectionId: this.sectionId,
+      spotLayout: this.spotLayout,
     };
   }
 
-  static create() {
-    const position = -1;
-    return new Shelf({ position });
+  static reconstitute(shelf: ShelfJson) {
+    return new Shelf(shelf);
+  }
+
+  static create(id: string, sectionId: string) {
+    return new Shelf({ id, sectionId, spotLayout: [] });
   }
 }

@@ -1,65 +1,74 @@
 import { Json, PartialBy } from "../../types/utils";
+import { ProductLine, ProductLineJson } from "./ProductLine";
 
 export type SpotJson = Json<Spot>;
 
 export class Spot {
-  private _position: number;
-  private _productId!: string | null;
-  private _parLevel!: number | null;
-  private _columnSpan!: number;
+  public readonly id: string;
+  public shelfId: string;
+  private _stackHeight: number;
+  private _columnWidth: number;
+  private _productLine: string | null;
 
   constructor(spot: SpotJson) {
-    this._position = spot.position;
-    this.columnSpan = spot.columnSpan;
-    this.parLevel = spot.parLevel;
-    this.productId = spot.productId;
+    const { id, shelfId, columnWidth, stackHeight, productLine } = spot;
+    this.id = id;
+    this.shelfId = shelfId;
+    this._productLine = productLine;
+    this._columnWidth = columnWidth;
+    this._stackHeight = stackHeight;
   }
 
-  get position(): number {
-    return this._position;
+  get columnWidth(): number {
+    return this._columnWidth;
+  }
+  set columnWidth(width: number) {
+    if (width < 1) throw new Error("Column width must be at least 1");
+    if (!Number.isInteger(width)) throw new Error("Column width must be an integer");
+    this._columnWidth = width;
   }
 
-  get productId(): string | null {
-    return this._productId;
+  get stackHeight(): number {
+    return this._stackHeight;
   }
-  set productId(id: string | null) {
-    this._productId = id;
-  }
-
-  get parLevel(): number | null {
-    return this._parLevel;
-  }
-  set parLevel(parLevel: number | null) {
-    this._parLevel = parLevel;
+  set stackHeight(height: number) {
+    if (height < 1) throw new Error("Stack height must be at least 1");
+    if (!Number.isInteger(height)) throw new Error("Stack height must be an integer");
+    this._stackHeight = height;
   }
 
-  get columnSpan(): number {
-    return this._columnSpan;
-  }
-  set columnSpan(span: number) {
-    this._columnSpan = span;
+  get productLine(): string | null {
+    return this._productLine;
   }
 
-  assignPosition(position: number) {
-    this._position = position;
+  setProductLine(productLine: string | null) {
+    this._productLine = productLine;
+  }
+  removeProductLine() {
+    if (!this._productLine) return;
+    const id = this._productLine;
+    this._productLine = null;
+    return id;
   }
 
-  toJSON() {
+  toJSON(): SpotJson {
     return {
-      columnSpan: this.columnSpan,
-      position: this.position,
-      productId: this.productId,
-      parLevel: this.parLevel,
+      id: this.id,
+      shelfId: this.shelfId,
+      productLine: this.productLine,
+      columnWidth: this.columnWidth,
+      stackHeight: this.stackHeight,
     };
   }
 
-  static create(
-    spot?: PartialBy<SpotJson, "position" | "parLevel" | "columnSpan" | "productId">
-  ) {
-    const columnSpan = spot?.columnSpan || 1;
-    const parLevel = spot?.parLevel || null;
-    const productId = spot?.productId || null;
-    const position = -1;
-    return new Spot({ columnSpan, position, parLevel, productId });
+  static create(id: string, shelfId: string) {
+    const columnWidth = 1;
+    const stackHeight = 1;
+    const productLine = null;
+    return new Spot({ id, shelfId, columnWidth, stackHeight, productLine });
+  }
+
+  static reconstitute(spot: SpotJson) {
+    return new Spot(spot);
   }
 }

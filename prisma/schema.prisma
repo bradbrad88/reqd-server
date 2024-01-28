@@ -119,7 +119,10 @@ model VenueArea {
   venueId String @map("venue_id") @db.Uuid
   venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  storageSpaces Json @map("area_locations") @db.Json
+  storageSpaces      Json @map("area_locations") @db.Json
+  storageSpaceLayout Json @map("storage_space_layout") @db.Json
+  productLines       Json @map("product_lines") @db.Json
+  currentIdSequence  Int  @map("current_id_sequence")
 
   @@index([venueId])
   @@map("venue_areas")

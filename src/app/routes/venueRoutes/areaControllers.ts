@@ -41,134 +41,17 @@ const removeArea: Controller = async req => {
 
 const createStorageSpace: Controller = async req => {
   const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({ storageSpace: z.string() });
-  const { venueAreaId } = paramsSchema.parse(req.params);
-  const { storageSpace } = bodySchema.parse(req.body);
-  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.createStorageSpace(storageSpace);
-  venueArea.setSectionCount(storageSpace, 1);
-  venueArea.setShelfCount(storageSpace, 0, 1);
-  const res = await venueArea.save(repo);
-  if (!res.success) throw res.error;
-  return res;
-};
-
-const setSectionCount: Controller = async req => {
-  const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({ storageSpace: z.string(), sectionCount: z.number() });
-  const { venueAreaId } = paramsSchema.parse(req.params);
-  const { storageSpace, sectionCount } = bodySchema.parse(req.body);
-  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.setSectionCount(storageSpace, sectionCount);
-  const res = await venueArea.save(repo);
-  if (!res.success) throw res.error;
-  return res;
-};
-
-const setShelfCount: Controller = async req => {
-  const paramsSchema = z.object({ venueAreaId: z.string() });
   const bodySchema = z.object({
     storageSpace: z.string(),
-    section: z.number(),
-    shelfCount: z.number(),
+    layoutType: z.union([z.literal("list"), z.literal("layout")]),
   });
   const { venueAreaId } = paramsSchema.parse(req.params);
-  const { storageSpace, section, shelfCount } = bodySchema.parse(req.body);
+  const { storageSpace, layoutType } = bodySchema.parse(req.body);
   const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.setShelfCount(storageSpace, section, shelfCount);
-  const res = await venueArea.save(repo);
-  if (!res.success) throw res.error;
-  return res;
-};
-
-const addSpot: Controller = async req => {
-  const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({
-    storageSpace: z.string(),
-    section: z.number(),
-    shelf: z.number(),
-    spot: z.object({
-      parLevel: z.number().optional(),
-      columnSpan: z.number().optional(),
-    }),
-  });
-  const { venueAreaId } = paramsSchema.parse(req.params);
-  const { spot, ...location } = bodySchema.parse(req.body);
-  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.addSpot(location, spot);
-  const res = await venueArea.save(repo);
-  if (!res.success) throw res.error;
-  return res;
-};
-
-const updateSpot: Controller = async req => {
-  const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({
-    storageSpace: z.string(),
-    section: z.number(),
-    shelf: z.number(),
-    spot: z.number(),
-    update: z.object({
-      parLevel: z.number().optional(),
-      columnSpan: z.number().optional(),
-      productId: z.string().nullish(),
-    }),
-  });
-  const { venueAreaId } = paramsSchema.parse(req.params);
-  const { update, ...location } = bodySchema.parse(req.body);
-  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  if (update.columnSpan !== undefined)
-    venueArea.changeSpotColumnSpan(location, update.columnSpan);
-  if (update.parLevel !== undefined) venueArea.changeSpotParLevel(location, update.parLevel);
-  if (update.productId !== undefined) venueArea.changeSpotProduct(location, update.productId);
-  const res = await venueArea.save(repo);
-  if (!res.success) throw res.error;
-  return res;
-};
-
-const removeSpot: Controller = async req => {
-  const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({
-    storageSpace: z.string(),
-    section: z.number(),
-    shelf: z.number(),
-    spot: z.number(),
-  });
-  const { venueAreaId } = paramsSchema.parse(req.params);
-  const location = bodySchema.parse(req.body);
-  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.removeSpot(location);
-  const res = await venueArea.save(repo);
-  if (!res.success) throw res.error;
-  return res;
-};
-
-const removeShelf: Controller = async req => {
-  const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({
-    storageSpace: z.string(),
-    section: z.number(),
-    shelf: z.number(),
-  });
-  const { venueAreaId } = paramsSchema.parse(req.params);
-  const location = bodySchema.parse(req.body);
-  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.removeShelf(location);
-  const res = await venueArea.save(repo);
-  if (!res.success) throw res.error;
-  return res;
-};
-
-const removeSection: Controller = async req => {
-  const paramsSchema = z.object({ venueAreaId: z.string() });
-  const bodySchema = z.object({
-    storageSpace: z.string(),
-    section: z.number(),
-  });
-  const { venueAreaId } = paramsSchema.parse(req.params);
-  const location = bodySchema.parse(req.body);
-  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.removeSection(location);
+  venueArea.createStorageSpace(storageSpace, layoutType);
+  const sections = venueArea.setSectionCount(storageSpace, 1);
+  const shelves = venueArea.setShelfCount(storageSpace, sections[0], 1);
+  venueArea.setSpotCount(storageSpace, shelves[0], 3);
   const res = await venueArea.save(repo);
   if (!res.success) throw res.error;
   return res;
@@ -180,9 +63,234 @@ const removeStorageSpace: Controller = async req => {
     storageSpace: z.string(),
   });
   const { venueAreaId } = paramsSchema.parse(req.params);
-  const location = bodySchema.parse(req.body);
+  const { storageSpace } = bodySchema.parse(req.body);
   const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
-  venueArea.removeStorageSpace(location);
+  venueArea.removeStorageSpace(storageSpace);
+  console.log(venueArea.toJSON());
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const renameStorageSpace: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    newName: z.string(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, newName } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.renameStorageSpace(storageSpace, newName);
+  const res = await venueArea.save(repo);
+  console.log(venueArea.toJSON());
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const moveStorageSpace: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    newIndex: z.number().gte(0),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, newIndex } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.moveStorageSpace(storageSpace, newIndex);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const setProductLine: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    location: z.union([
+      z.object({
+        storageSpace: z.string(),
+        spotId: z.string(),
+      }),
+      z.object({
+        storageSpace: z.string(),
+        index: z.number().int().gte(0),
+      }),
+    ]),
+    productLine: z.object({
+      productId: z.string().nullable().optional(),
+      parLevel: z.number().int().gte(0).nullable().optional(),
+    }),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { location, productLine } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.setProductLine(location, productLine);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const editProductLine: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    productLine: z.string(),
+    update: z.object({
+      productId: z.string().nullable().optional(),
+      parLevel: z.number().int().gte(0).nullable().optional(),
+    }),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { productLine, update } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.editProductLine(productLine, update);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const removeProductLine: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    location: z.union([
+      z.object({
+        storageSpace: z.string(),
+        spotId: z.string(),
+      }),
+      z.object({
+        storageSpace: z.string(),
+        index: z.number().int().gte(0),
+      }),
+    ]),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { location } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeProductLine(location);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const setSectionCount: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({ storageSpace: z.string(), count: z.number() });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, count } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.setSectionCount(storageSpace, count);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const setShelfCount: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    sectionId: z.string(),
+    count: z.number(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, sectionId, count } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.setShelfCount(storageSpace, sectionId, count);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const setSpotCount: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    shelfId: z.string(),
+    count: z.number().int().gt(0),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, shelfId, count } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.setSpotCount(storageSpace, shelfId, count);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const moveSpot: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    shelfId: z.string(),
+    spotId: z.string(),
+    index: z.number().gte(0),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, shelfId, spotId, index } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.moveSpot(storageSpace, spotId, shelfId, index);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const updateSpot: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    spotId: z.string(),
+    update: z.object({
+      columnWidth: z.number().int().gte(0).optional(),
+      stackHeight: z.number().int().gte(0).optional(),
+    }),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, spotId, update } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.editSpot(storageSpace, spotId, update);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const removeSection: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    sectionId: z.string(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, sectionId } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeSection(storageSpace, sectionId);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const removeShelf: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    shelfId: z.string(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, shelfId } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeShelf(storageSpace, shelfId);
+  const res = await venueArea.save(repo);
+  if (!res.success) throw res.error;
+  return res;
+};
+
+const removeSpot: Controller = async req => {
+  const paramsSchema = z.object({ venueAreaId: z.string() });
+  const bodySchema = z.object({
+    storageSpace: z.string(),
+    spotId: z.string(),
+  });
+  const { venueAreaId } = paramsSchema.parse(req.params);
+  const { storageSpace, spotId } = bodySchema.parse(req.body);
+  const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
+  venueArea.removeSpot(storageSpace, spotId);
   const res = await venueArea.save(repo);
   if (!res.success) throw res.error;
   return res;
@@ -208,14 +316,20 @@ export const getAreaCommandRoutes = (controllerAdaptor: ControllerAdaptor) => {
   router.patch("/:venueAreaId", controllerAdaptor(patchArea));
   router.delete("/:venueAreaId", controllerAdaptor(removeArea));
   router.post("/:venueAreaId", controllerAdaptor(createStorageSpace));
+  router.put("/:venueAreaId/remove-storage-space", controllerAdaptor(removeStorageSpace));
+  router.put("/:venueAreaId/rename-storage-space", controllerAdaptor(renameStorageSpace));
+  router.put("/:venueAreaId/move-storage-space", controllerAdaptor(moveStorageSpace));
+  router.put("/:venueAreaId/set-product-line", controllerAdaptor(setProductLine));
+  router.put("/:venueAreaId/edit-product-line", controllerAdaptor(editProductLine));
+  router.put("/:venueAreaId/remove-product-line", controllerAdaptor(removeProductLine));
   router.put("/:venueAreaId/section-count", controllerAdaptor(setSectionCount));
   router.put("/:venueAreaId/shelf-count", controllerAdaptor(setShelfCount));
-  router.post("/:venueAreaId/spot", controllerAdaptor(addSpot));
-  router.put("/:venueAreaId/spot", controllerAdaptor(updateSpot));
-  router.put("/:venueAreaId/remove-spot", controllerAdaptor(removeSpot));
-  router.put("/:venueAreaId/remove-shelf", controllerAdaptor(removeShelf));
+  router.put("/:venueAreaId/spot-count", controllerAdaptor(setSpotCount));
+  router.put("/:venueAreaId/move-spot", controllerAdaptor(moveSpot));
+  router.put("/:venueAreaId/update-spot", controllerAdaptor(updateSpot));
   router.put("/:venueAreaId/remove-section", controllerAdaptor(removeSection));
-  router.put("/:venueAreaId/remove-storage-space", controllerAdaptor(removeStorageSpace));
+  router.put("/:venueAreaId/remove-shelf", controllerAdaptor(removeShelf));
+  router.put("/:venueAreaId/remove-spot", controllerAdaptor(removeSpot));
   return router;
 };
 
