@@ -1,6 +1,14 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import chalk from "chalk";
+import { PackageType } from "../src/domain/packageType/PackageType";
+import {
+  getPackageTypeRepository,
+  getUnitOfMeasurementRepository,
+  getUnitTypeRepository,
+} from "../src/app/repository";
+import { UnitOfMeasurement } from "../src/domain/unitOfMeasurement/UnitOfMeasurement";
+import { UnitType } from "../src/domain/unitType/UnitType";
 
 const client = new PrismaClient();
 
@@ -33,16 +41,23 @@ async function deleteAll() {
 
 async function seedUnitTypes() {
   console.log("Seeding: Unit Types");
-  const unitTypes = [
-    { value: "bottle" },
-    { value: "can" },
-    { value: "keg" },
-    { value: "stubby", plural: "stubbies" },
-    { value: "sachet" },
-    { value: "bag" },
-  ];
   try {
-    await client.unitType.createMany({ data: unitTypes });
+    const unitTypes = [
+      { value: "bottle" },
+      { value: "can" },
+      { value: "keg" },
+      { value: "stubby", plural: "stubbies" },
+      { value: "sachet" },
+      { value: "bag" },
+    ];
+    const promises = unitTypes.map(async ut =>
+      UnitType.create(ut).save(getUnitTypeRepository())
+    );
+    const res = await Promise.all(promises);
+    const err = res.find(res => {
+      if (!res.success) return res.error;
+    });
+    if (err) throw err;
     logSuccess("Unit Types Succeeded");
   } catch (error) {
     console.log(error);
@@ -60,7 +75,14 @@ async function seedPackageTypes() {
       { value: "pallet" },
       { value: "bag" },
     ];
-    await client.packageType.createMany({ data: packageTypes });
+    const promises = packageTypes.map(async pt => {
+      return PackageType.create(pt).save(getPackageTypeRepository());
+    });
+    const res = await Promise.all(promises);
+    const err = res.find(res => {
+      if (!res.success) return res.error;
+    });
+    if (err) throw err;
     logSuccess("Package Types Succeeded");
   } catch (error) {
     console.log(error);
@@ -71,7 +93,14 @@ async function seedUnitOfMeasurements() {
   console.log("Seeding: Unit of Measurements");
   try {
     const unitOfMeasurements = [{ value: "mL" }, { value: "g" }, { value: "kg" }];
-    await client.unitOfMeasurement.createMany({ data: unitOfMeasurements });
+    const promises = unitOfMeasurements.map(async uom =>
+      UnitOfMeasurement.create(uom).save(getUnitOfMeasurementRepository())
+    );
+    const res = await Promise.all(promises);
+    const err = res.find(res => {
+      if (!res.success) return res.error;
+    });
+    if (err) throw err;
     logSuccess("Unit of Measurements Succeeded");
   } catch (error) {
     console.log(error);
@@ -120,6 +149,13 @@ async function seedProducts() {
       {
         id: "532fe532-193e-4a49-9fc8-4a077a8ece4d",
         displayName: "Sprite",
+        unitTypeId: "can",
+        size: 375,
+        unitOfMeasurementId: "mL",
+      },
+      {
+        id: "0c6cddc5-a036-4d36-b3fd-3681a7313d69",
+        displayName: "Fanta",
         unitTypeId: "can",
         size: 375,
         unitOfMeasurementId: "mL",
