@@ -13,7 +13,7 @@ export class PostgresInventoryRepository implements InventoryRepository {
       productId: res.productId,
       defaultSupply: res.defaultVendorProductId,
     };
-    return Inventory.reconstitute(transform);
+    return Inventory.reconstitute(transform, this);
   }
 
   async save(inventory: Inventory): Promise<OperationResponse> {

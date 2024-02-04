@@ -8,7 +8,7 @@ export class PostgresPreferredVendorRepository implements PreferredVendorReposit
     const res = await client.preferredVendor.findUniqueOrThrow({
       where: { vendorId_venueId: { vendorId, venueId } },
     });
-    return PreferredVendor.reconstitute(res);
+    return PreferredVendor.reconstitute(res, this);
   }
 
   async save(preferredVendor: PreferredVendor): Promise<OperationResponse> {

@@ -17,9 +17,9 @@ const createProductController: Controller = async req => {
   });
   const validatedParams = paramsSchema.parse(req.params);
   const validatedBody = bodyParams.parse(req.body);
-  const product = Product.create({ ...validatedParams, ...validatedBody });
+  const product = Product.create({ ...validatedParams, ...validatedBody }, repo);
 
-  await product.save(repo);
+  await product.save();
   return product.toJSON();
 };
 
@@ -27,7 +27,7 @@ const deleteProductController: Controller = async req => {
   const paramsSchema = z.object({ productId: z.string() });
   const { productId } = paramsSchema.parse(req.params);
   const product = await Product.reconstituteById(productId, repo);
-  const res = await product.delete(repo);
+  const res = await product.delete();
   if (!res.success) throw res.error;
   return res;
 };
@@ -58,7 +58,7 @@ const updateProductDetailsController: Controller = async req => {
   if (unitType !== undefined) product.unitType = unitType.value;
   if (size !== undefined) product.size = size;
   if (unitOfMeasurement !== undefined) product.unitOfMeasurement = unitOfMeasurement.value;
-  await product.save(repo);
+  await product.save();
   return product.toJSON();
 };
 

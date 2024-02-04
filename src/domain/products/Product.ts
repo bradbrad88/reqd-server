@@ -14,17 +14,17 @@ export default class Product extends AggregateRoot<ProductRepository> {
   private _size!: number | null;
   private _unitOfMeasurement!: string | null;
 
-  static create(product: PartialBy<ProductJson, "id">) {
+  static create(product: PartialBy<ProductJson, "id">, repository: ProductRepository) {
     const id = uuid();
-    return new Product({ ...product, id });
+    return new Product({ ...product, id }, repository);
   }
 
   static async reconstituteById(id: string, repository: ProductRepository) {
     return await repository.findProductById(id);
   }
 
-  static reconstitute(product: ProductJson) {
-    return new Product(product, false);
+  static reconstitute(product: ProductJson, repository: ProductRepository) {
+    return new Product(product, repository, false);
   }
 
   get displayName(): string {
@@ -63,8 +63,8 @@ export default class Product extends AggregateRoot<ProductRepository> {
     this._unitOfMeasurement = unitOfMeasurement;
   }
 
-  private constructor(product: ProductJson, isNew = true) {
-    super();
+  private constructor(product: ProductJson, repository: ProductRepository, isNew = true) {
+    super(repository);
     this._isNew = isNew;
     const { id, venueId, displayName, unitType, size, unitOfMeasurement } = product;
     this.id = id;

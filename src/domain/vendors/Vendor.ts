@@ -10,33 +10,31 @@ export default class Vendor extends AggregateRoot<VendorRepository> {
   public readonly id: string;
   private _logo!: string | null;
   private _vendorName!: string;
-  private _venueId!: string | null;
 
-  static create(vendor: PartialBy<VendorJson, "id" | "logo" | "venueId">) {
+  static create(vendor: PartialBy<VendorJson, "id" | "logo">, repository: VendorRepository) {
     const id = uuid();
     const data = {
       ...vendor,
       id: vendor.id || id,
       logo: vendor.logo || null,
-      venueId: vendor.venueId || null,
     };
-    return new Vendor(data);
+    return new Vendor(data, repository);
   }
 
   static async reconstituteFromId(id: string, repository: VendorRepository) {
     return await repository.findById(id);
   }
 
-  static reconstitute(vendor: VendorJson): Vendor {
-    return new Vendor(vendor, false);
+  static reconstitute(vendor: VendorJson, repository: VendorRepository): Vendor {
+    return new Vendor(vendor, repository, false);
   }
 
-  private constructor(vendor: VendorJson, isNew = true) {
-    super();
+  private constructor(vendor: VendorJson, repository: VendorRepository, isNew = true) {
+    super(repository);
     this._isNew = isNew;
     this.id = vendor.id;
     this.vendorName = vendor.vendorName;
-    this.venueId = vendor.venueId;
+
     this.logo = vendor.logo;
   }
 
@@ -45,13 +43,6 @@ export default class Vendor extends AggregateRoot<VendorRepository> {
   }
   set vendorName(newName: string) {
     this._vendorName = newName;
-  }
-
-  get venueId(): string | null {
-    return this._venueId;
-  }
-  set venueId(id: string | null) {
-    this._venueId = id;
   }
 
   get logo(): string | null {

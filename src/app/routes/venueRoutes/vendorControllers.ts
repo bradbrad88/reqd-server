@@ -21,13 +21,16 @@ const addVendor: Controller = async req => {
   });
   const { venueId } = paramsSchema.parse(req.params);
   const { vendorId, contactNumber, repName, email } = bodySchema.parse(req.body);
-  const preferredVendor = PreferredVendor.create({
-    venueId,
-    vendorId,
-    contactNumber,
-    repName,
-  });
-  const res = await preferredVendor.save(repo);
+  const preferredVendor = PreferredVendor.create(
+    {
+      venueId,
+      vendorId,
+      contactNumber,
+      repName,
+    },
+    repo
+  );
+  const res = await preferredVendor.save();
   if (!res.success) throw res.error;
   return res;
 };
@@ -36,7 +39,7 @@ const removeVendor: Controller = async req => {
   const paramsSchema = z.object({ venueId: z.string(), vendorId: z.string() });
   const { vendorId, venueId } = paramsSchema.parse(req.params);
   const preferredVendor = await PreferredVendor.reconstituteById(venueId, vendorId, repo);
-  const res = await preferredVendor.delete(repo);
+  const res = await preferredVendor.delete();
   if (!res.success) throw res.error;
   return res;
 };
@@ -54,7 +57,7 @@ const updateVendor: Controller = async req => {
   if (repName !== undefined) preferredVendor.repName = repName;
   if (contactNumber !== undefined) preferredVendor.contactNumber = contactNumber;
   if (email !== undefined) preferredVendor.email = email;
-  const res = await preferredVendor.save(repo);
+  const res = await preferredVendor.save();
   if (!res.success) throw res.error;
   return res;
 };

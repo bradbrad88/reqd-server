@@ -6,7 +6,7 @@ import { VendorRepository } from "./VendorRepository";
 export class PostgresVendorRepository implements VendorRepository {
   async findById(id: string): Promise<Vendor> {
     const res = await client.vendor.findUniqueOrThrow({ where: { id } });
-    return Vendor.reconstitute(res);
+    return Vendor.reconstitute(res, this);
   }
   async save(vendor: Vendor): Promise<OperationResponse> {
     try {

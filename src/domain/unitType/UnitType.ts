@@ -8,15 +8,15 @@ export class UnitType extends AggregateRoot<UnitTypeRepository> {
   public readonly value: string;
   public readonly plural: string;
 
-  private constructor(unitType: UnitTypeJson, isNew = true) {
-    super();
+  private constructor(unitType: UnitTypeJson, repository: UnitTypeRepository, isNew = true) {
+    super(repository);
     this._isNew = isNew;
     this.value = unitType.value;
     this.plural = unitType.plural;
   }
 
-  static create(unitType: PartialBy<UnitTypeJson, "plural">) {
+  static create(unitType: PartialBy<UnitTypeJson, "plural">, repository: UnitTypeRepository) {
     const plural = unitType.plural || unitType.value + "s";
-    return new UnitType({ ...unitType, plural });
+    return new UnitType({ ...unitType, plural }, repository);
   }
 }

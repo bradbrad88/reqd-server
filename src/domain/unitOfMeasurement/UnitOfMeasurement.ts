@@ -7,13 +7,20 @@ export type UnitOfMeasurementJson = Json<UnitOfMeasurement>;
 export class UnitOfMeasurement extends AggregateRoot<UnitOfMeasurementRepository> {
   public readonly value: string;
 
-  constructor(unitOfMeasurement: UnitOfMeasurementJson, isNew = true) {
-    super();
+  constructor(
+    unitOfMeasurement: UnitOfMeasurementJson,
+    repository: UnitOfMeasurementRepository,
+    isNew = true
+  ) {
+    super(repository);
     this._isNew = isNew;
     this.value = unitOfMeasurement.value;
   }
 
-  static create(unitOfMeasurement: UnitOfMeasurementJson) {
-    return new UnitOfMeasurement(unitOfMeasurement);
+  static create(
+    unitOfMeasurement: UnitOfMeasurementJson,
+    repository: UnitOfMeasurementRepository
+  ) {
+    return new UnitOfMeasurement(unitOfMeasurement, repository);
   }
 }

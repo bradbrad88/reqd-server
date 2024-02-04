@@ -12,8 +12,12 @@ export class VendorRange extends AggregateRoot<VendorRangeRepository> {
   private _packageType!: string;
   private _packageQuantity!: number;
 
-  private constructor(vendorRange: VendorRangeJson, isNew = true) {
-    super();
+  private constructor(
+    vendorRange: VendorRangeJson,
+    repository: VendorRangeRepository,
+    isNew = true
+  ) {
+    super(repository);
     this._isNew = isNew;
     this.id = vendorRange.id;
     this.productId = vendorRange.productId;
@@ -36,16 +40,19 @@ export class VendorRange extends AggregateRoot<VendorRangeRepository> {
     this._packageQuantity = quantity;
   }
 
-  static create(vendorRange: PartialBy<VendorRangeJson, "id">) {
+  static create(
+    vendorRange: PartialBy<VendorRangeJson, "id">,
+    repository: VendorRangeRepository
+  ) {
     const id = uuid();
-    return new VendorRange({ ...vendorRange, id });
+    return new VendorRange({ ...vendorRange, id }, repository);
   }
 
   static async reconstituteById(id: string, repository: VendorRangeRepository) {
     return await repository.findById(id);
   }
 
-  static reconstitute(vendorRange: VendorRangeJson) {
-    return new VendorRange(vendorRange, false);
+  static reconstitute(vendorRange: VendorRangeJson, repository: VendorRangeRepository) {
+    return new VendorRange(vendorRange, repository, false);
   }
 }

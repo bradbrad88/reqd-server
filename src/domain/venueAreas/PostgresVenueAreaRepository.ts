@@ -15,7 +15,7 @@ export class PostgresVenueAreaRepository implements VenueAreaRepository {
       productLines: res.productLines as VenueAreaJson["productLines"],
       storageSpaceLayout: res.storageSpaceLayout as VenueAreaJson["storageSpaceLayout"],
     };
-    return VenueArea.reconstitute(transform);
+    return VenueArea.reconstitute(transform, this);
   }
 
   async save(venueArea: VenueArea): Promise<OperationResponse> {

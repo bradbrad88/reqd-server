@@ -9,8 +9,12 @@ export class Inventory extends AggregateRoot<InventoryRepository> {
   public readonly productId: string;
   private _defaultSupply!: string | null;
 
-  private constructor(inventory: InventoryJson, isNew = true) {
-    super();
+  private constructor(
+    inventory: InventoryJson,
+    repository: InventoryRepository,
+    isNew = true
+  ) {
+    super(repository);
     this._isNew = isNew;
     this.venueId = inventory.venueId;
     this.productId = inventory.productId;
@@ -24,12 +28,12 @@ export class Inventory extends AggregateRoot<InventoryRepository> {
     this._defaultSupply = supplyId || null;
   }
 
-  static create(inventory: InventoryJson) {
-    return new Inventory(inventory);
+  static create(inventory: InventoryJson, repository: InventoryRepository) {
+    return new Inventory(inventory, repository);
   }
 
-  static reconstitute(inventory: InventoryJson) {
-    return new Inventory(inventory, false);
+  static reconstitute(inventory: InventoryJson, repository: InventoryRepository) {
+    return new Inventory(inventory, repository, false);
   }
 
   static async reconstituteById(

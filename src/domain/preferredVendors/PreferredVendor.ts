@@ -12,7 +12,8 @@ export default class PreferredVendor extends AggregateRoot<PreferredVendorReposi
   private _email!: string | null;
 
   static create(
-    preferredVendor: PartialBy<PreferredVendorJson, "repName" | "contactNumber" | "email">
+    preferredVendor: PartialBy<PreferredVendorJson, "repName" | "contactNumber" | "email">,
+    repository: PreferredVendorRepository
   ) {
     const data = {
       ...preferredVendor,
@@ -20,11 +21,14 @@ export default class PreferredVendor extends AggregateRoot<PreferredVendorReposi
       contactNumber: preferredVendor.contactNumber || null,
       email: preferredVendor.email || null,
     };
-    return new PreferredVendor(data);
+    return new PreferredVendor(data, repository);
   }
 
-  static reconstitute(preferredVendor: PreferredVendorJson) {
-    return new PreferredVendor(preferredVendor, false);
+  static reconstitute(
+    preferredVendor: PreferredVendorJson,
+    repository: PreferredVendorRepository
+  ) {
+    return new PreferredVendor(preferredVendor, repository, false);
   }
 
   static async reconstituteById(
@@ -35,8 +39,12 @@ export default class PreferredVendor extends AggregateRoot<PreferredVendorReposi
     return await repository.findById(venueId, vendorId);
   }
 
-  private constructor(preferredVendor: PreferredVendorJson, isNew = true) {
-    super();
+  private constructor(
+    preferredVendor: PreferredVendorJson,
+    repository: PreferredVendorRepository,
+    isNew = true
+  ) {
+    super(repository);
     const { vendorId, venueId, contactNumber, repName, email } = preferredVendor;
     this._isNew = isNew;
     this.vendorId = vendorId;

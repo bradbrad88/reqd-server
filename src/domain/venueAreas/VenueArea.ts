@@ -74,8 +74,12 @@ export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
     return this._idSequence.currentSequence;
   }
 
-  private constructor(venueArea: VenueAreaJson, isNew = true) {
-    super();
+  private constructor(
+    venueArea: VenueAreaJson,
+    repository: VenueAreaRepository,
+    isNew = true
+  ) {
+    super(repository);
     this._isNew = isNew;
     this.id = venueArea.id;
     this.venueId = venueArea.venueId;
@@ -248,23 +252,27 @@ export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
     venueArea: PartialBy<
       VenueAreaJson,
       "id" | "storageSpaces" | "productLines" | "storageSpaceLayout" | "currentIdSequence"
-    >
+    >,
+    repository: VenueAreaRepository
   ) {
     const id = uuid();
-    return new VenueArea({
-      ...venueArea,
-      id,
-      storageSpaces: {},
-      storageSpaceLayout: [],
-      productLines: {},
-      currentIdSequence: 0,
-    });
+    return new VenueArea(
+      {
+        ...venueArea,
+        id,
+        storageSpaces: {},
+        storageSpaceLayout: [],
+        productLines: {},
+        currentIdSequence: 0,
+      },
+      repository
+    );
   }
   static async reconstituteById(id: string, repository: VenueAreaRepository) {
     return await repository.findById(id);
   }
-  static reconstitute(venueArea: VenueAreaJson) {
-    return new VenueArea(venueArea, false);
+  static reconstitute(venueArea: VenueAreaJson, repository: VenueAreaRepository) {
+    return new VenueArea(venueArea, repository, false);
   }
 
   private validateName(newName: string) {

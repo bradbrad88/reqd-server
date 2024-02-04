@@ -33,7 +33,7 @@ export class PostgresVendorRangeRepository implements VendorRangeRepository {
       packageType: res.packageTypeId,
       packageQuantity: res.packageQuantity,
     };
-    return VendorRange.reconstitute(transform);
+    return VendorRange.reconstitute(transform, this);
   }
 
   async delete(vendorRange: VendorRange): Promise<OperationResponse> {

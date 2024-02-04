@@ -42,6 +42,6 @@ export class PostgresProductRepository implements ProductRepository {
       unitOfMeasurement: res.unitOfMeasurementId,
       unitType: res.unitTypeId,
     };
-    return Product.reconstitute(transform);
+    return Product.reconstitute(transform, this);
   }
 }
