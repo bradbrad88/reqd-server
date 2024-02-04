@@ -9,12 +9,16 @@ export default class PreferredVendor extends AggregateRoot<PreferredVendorReposi
   public readonly vendorId: string;
   private _repName!: string | null;
   private _contactNumber!: string | null;
+  private _email!: string | null;
 
-  static create(preferredVendor: PartialBy<PreferredVendorJson, "repName" | "contactNumber">) {
+  static create(
+    preferredVendor: PartialBy<PreferredVendorJson, "repName" | "contactNumber" | "email">
+  ) {
     const data = {
       ...preferredVendor,
       repName: preferredVendor.repName || null,
       contactNumber: preferredVendor.contactNumber || null,
+      email: preferredVendor.email || null,
     };
     return new PreferredVendor(data);
   }
@@ -33,12 +37,13 @@ export default class PreferredVendor extends AggregateRoot<PreferredVendorReposi
 
   private constructor(preferredVendor: PreferredVendorJson, isNew = true) {
     super();
-    const { vendorId, venueId, contactNumber, repName } = preferredVendor;
+    const { vendorId, venueId, contactNumber, repName, email } = preferredVendor;
     this._isNew = isNew;
     this.vendorId = vendorId;
     this.venueId = venueId;
     this.repName = repName;
     this.contactNumber = contactNumber;
+    this.email = email;
   }
 
   get repName(): string | null {
@@ -53,5 +58,12 @@ export default class PreferredVendor extends AggregateRoot<PreferredVendorReposi
   }
   set contactNumber(contactNumber: string | null) {
     this._contactNumber = contactNumber;
+  }
+
+  get email(): string | null {
+    return this._email;
+  }
+  set email(email: string | null) {
+    this._email = email;
   }
 }

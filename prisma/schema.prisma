@@ -11,14 +11,13 @@ datasource db {
 }
 
 model Venue {
-  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueName   String            @map("venue_name")
-  Product     Product[]
-  Vendor      Vendor[]
-  VenueArea   VenueArea[]
-  Order       Order[]
-  VenueVendor PreferredVendor[]
-  Inventory   Inventory[]
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueName       String            @map("venue_name")
+  Product         Product[]
+  VenueArea       VenueArea[]
+  Order           Order[]
+  PreferredVendor PreferredVendor[]
+  Inventory       Inventory[]
 
   @@map("venues")
 }
@@ -66,15 +65,11 @@ model Vendor {
   id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   vendorName String  @map("vendor_name")
   logo       String?
-  Venue      Venue?  @relation(fields: [venueId], references: [id])
-  venueId    String? @db.Uuid
 
-  VenueVendor PreferredVendor[]
-
+  PreferredVendor        PreferredVendor[]
   OrderProductVendorType OrderProductVendorType[]
   VendorRange            VendorRange[]
 
-  @@index([venueId])
   @@map("vendors")
 }
 
@@ -87,6 +82,7 @@ model PreferredVendor {
 
   repName       String? @map("rep_name")
   contactNumber String? @map("contact_number")
+  email         String?
 
   @@id([vendorId, venueId])
   @@index([venueId])

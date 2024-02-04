@@ -13,12 +13,13 @@ export class PostgresPreferredVendorRepository implements PreferredVendorReposit
 
   async save(preferredVendor: PreferredVendor): Promise<OperationResponse> {
     try {
-      const { vendorId, venueId, contactNumber, repName } = preferredVendor;
+      const { vendorId, venueId, contactNumber, repName, email } = preferredVendor;
       const data = {
         vendorId,
         venueId,
         contactNumber,
         repName,
+        email,
       };
       if (preferredVendor.isNew()) {
         await client.preferredVendor.create({ data });

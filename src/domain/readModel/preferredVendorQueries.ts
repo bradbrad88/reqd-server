@@ -11,3 +11,18 @@ export const getPreferredVendorsByVenue = async (venueId: string) => {
     logo: vendor.vendor.logo,
   }));
 };
+
+export const getPreferredVendorDetail = async (vendorId: string, venueId: string) => {
+  const res = await client.preferredVendor.findUniqueOrThrow({
+    where: { vendorId_venueId: { vendorId, venueId } },
+    include: { vendor: true },
+  });
+  return {
+    id: res.vendorId,
+    vendorName: res.vendor.vendorName,
+    logo: res.vendor.logo,
+    repName: res.repName,
+    contactNumber: res.contactNumber,
+    email: res.email,
+  };
+};
