@@ -7,6 +7,7 @@ import { PostgresVendorRangeRepository } from "../domain/vendorRange/PostgresVen
 import { PostgresVendorRepository } from "../domain/vendors/PostgresVendorRepository";
 import { PostgresVenueAreaRepository } from "../domain/venueAreas/PostgresVenueAreaRepository";
 import { PostgresPreferredVendorRepository } from "../domain/preferredVendors/PostgresPreferredVendorRepository";
+import { PostgresOrderRepository } from "../domain/orders/PostgresOrderRepository";
 
 export const getProductRepository = () => new PostgresProductRepository();
 export const getInventoryRepository = () => new PostgresInventoryRepository();
@@ -17,3 +18,4 @@ export const getVenueAreaRepository = () => new PostgresVenueAreaRepository();
 export const getPackageTypeRepository = () => new PostgresPackageTypeRepository();
 export const getUnitOfMeasurementRepository = () => new PostgresUnitOfMeasurementRepository();
 export const getUnitTypeRepository = () => new PostgresUnitTypeRepository();
+export const getOrderRepository = () => new PostgresOrderRepository();

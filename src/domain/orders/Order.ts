@@ -1,118 +1,226 @@
+import { v4 as uuid } from "uuid";
 import { Json, PartialBy } from "../../types/utils";
+import { AggregateRoot } from "../writeModel/AggregateRoot";
+import { OrderRepository } from "./OrderRepository";
 
 export type OrderJson = Json<Order>;
+type OrderProductJson = Json<OrderProduct>;
+type OrderProductMap = Map<string, OrderProduct>;
+export type OrderProductMapJson = { [key: string]: OrderProductJson };
+export type SupplyDetailsJson = Json<SupplyDetails>;
+type VendorSummary = {
+  vendorId: string;
+  productCount: number;
+};
 
-export default class Order {
-  public id?: string | null;
-  public venueId: string;
-  public createdAt: Date;
-  public updatedAt: Date;
-  private _items: OrderItem[];
+export default class Order extends AggregateRoot<OrderRepository> {
+  public readonly id: string;
+  public readonly venueId: string;
+  public readonly createdAt: Date;
+  public readonly updatedAt: Date;
+  private _products: OrderProductMap;
+  public _changes: Set<string>;
+  public _additions: Set<string>;
+  public _deletions: Set<string>;
 
-  get items(): OrderItemJson[] {
-    return this._items.map(item => item.toJson());
+  static create(
+    order: PartialBy<
+      Omit<OrderJson, "createdAt" | "updatedAt" | "products" | "vendors">,
+      "id"
+    >,
+    repository: OrderRepository
+  ) {
+    const id = order.id || uuid();
+    const createdAt = new Date();
+    const updatedAt = new Date();
+    return new Order({ ...order, id, createdAt, updatedAt, products: {} }, repository);
   }
 
-  constructor({
-    id,
-    createdAt,
-    venueId,
-    items = [],
-  }: PartialBy<PartialBy<OrderJson, "items">, "updatedAt">) {
-    this.id = id;
-    this.createdAt = createdAt;
-    this.venueId = venueId;
+  static reconstitute(
+    order: Omit<OrderJson, "updatedAt" | "vendors">,
+    repository: OrderRepository
+  ) {
+    const updatedAt = new Date();
+    return new Order({ ...order, updatedAt }, repository, false);
+  }
+
+  static async reconstituteById(id: string, repository: OrderRepository) {
+    return await repository.findOrderById(id);
+  }
+
+  private constructor(
+    order: Omit<OrderJson, "vendors">,
+    repository: OrderRepository,
+    isNew = true
+  ) {
+    super(repository);
+    this._isNew = isNew;
+    this.id = order.id;
+    this.createdAt = order.createdAt;
+    this.venueId = order.venueId;
     this.updatedAt = new Date();
-    this._items = items.map(
-      item => new OrderItem({ productId: item.productId, areaAmounts: item.areaAmounts })
+    this._products = this._constructOrderProducts(order.products);
+    this._changes = new Set();
+    this._additions = new Set();
+    this._deletions = new Set();
+  }
+
+  private _constructOrderProducts(items: OrderJson["products"]): OrderProductMap {
+    return new Map(
+      Object.entries(items).map(([key, value]) => [key, new OrderProduct(value)])
     );
   }
 
-  setItemAmount(productId: string, productLocationId: string, amount: number) {
-    const product = this.getOrCreateProducts(productId);
-    product.setAreaAmount(productLocationId, amount);
+  get products(): OrderProductMapJson {
+    const products = {} as OrderProductMapJson;
+    for (const [key, product] of this._products.entries()) {
+      products[key] = product.toJSON();
+    }
+    return products;
+  }
+
+  get vendors(): VendorSummary[] {
+    const vendors = Array.from(this._products.entries()).reduce((map, [key, product]) => {
+      const { vendorId } = product.supplyDetails;
+      if (map.has(vendorId)) {
+        const summary = map.get(vendorId)!;
+        map.set(vendorId, { ...summary, productCount: summary.productCount + 1 });
+        return map;
+      }
+
+      const summary: VendorSummary = {
+        vendorId: product.supplyDetails.vendorId,
+        productCount: 1,
+      };
+
+      map.set(vendorId, summary);
+      return map;
+    }, new Map<string, VendorSummary>());
+    return Array.from(vendors.values());
+  }
+
+  setProductAmount(productId: string, quantity: number, supplyDetails?: SupplyDetailsJson) {
+    if (this._products.has(productId)) {
+      const product = this._products.get(productId)!;
+      if (supplyDetails) product.supplyDetails = supplyDetails;
+      product.quantity = quantity;
+      this._markProductChanged(productId);
+      return;
+    }
+
+    if (!supplyDetails)
+      throw new Error(
+        "Supply details missing. They are required when creating a new OrderProduct"
+      );
+    const orderItem = new OrderProduct({ productId, quantity, supplyDetails: supplyDetails });
+    this._products.set(productId, orderItem);
+    this._markProductAdded(productId);
   }
 
   removeProduct(productId: string) {
-    const idx = this._items.findIndex(item => item.productId === productId);
-    this._items.splice(idx, 1);
+    this._products.delete(productId);
+    this._markProductDeleted(productId);
   }
 
-  private getOrCreateProducts(productId: string) {
-    const itemArea = this._items.find(item => item.productId === productId);
-    if (itemArea) return itemArea;
-
-    const newOrderItem = new OrderItem({ productId });
-    this._items.push(newOrderItem);
-    return newOrderItem;
+  changeSupplyDetails(productId: string, supplyDetails: SupplyDetailsJson) {
+    if (!this._products.has(productId)) {
+      const orderItem = new OrderProduct({ productId, quantity: 0, supplyDetails });
+      this._products.set(productId, orderItem);
+      this._markProductAdded(productId);
+    }
+    const orderItem = this._products.get(productId)!;
+    this._markProductChanged(productId);
+    const newSupplyDetails = new SupplyDetails(supplyDetails);
+    orderItem.supplyDetails = newSupplyDetails;
   }
 
-  public toJson(): OrderJson {
+  private _markProductChanged(productId: string) {
+    if (this._additions.has(productId)) return;
+    this._changes.add(productId);
+    this._deletions.delete(productId);
+    this._additions.delete(productId);
+  }
+
+  private _markProductDeleted(productId: string) {
+    this._deletions.add(productId);
+    this._changes.delete(productId);
+    this._additions.delete(productId);
+  }
+
+  private _markProductAdded(productId: string) {
+    this._additions.add(productId);
+    this._changes.delete(productId);
+    this._deletions.delete(productId);
+  }
+
+  public toJSON(): OrderJson {
     return {
       id: this.id,
       venueId: this.venueId,
       createdAt: this.createdAt,
-      updatedAt: new Date(),
-      items: this.items,
+      updatedAt: this.updatedAt,
+      products: this.products,
+      vendors: this.vendors,
     };
   }
 }
 
-type OrderItemJson = Json<OrderItem>;
+class OrderProduct {
+  public readonly productId: string;
+  private _quantity!: number;
+  private _supplyDetails!: SupplyDetails;
 
-class OrderItem {
-  public productId: string;
-  private _areaAmounts: AreaAmount[];
-
-  public get areaAmounts() {
-    return this._areaAmounts.map(areaAmount => areaAmount.toJson());
-  }
-
-  constructor({
-    productId,
-    areaAmounts = [],
-  }: PartialBy<PartialBy<OrderItemJson, "areaAmounts">, "totalAmount">) {
+  constructor(orderItem: OrderProductJson) {
+    const { productId, quantity } = orderItem;
     this.productId = productId;
-    this._areaAmounts = areaAmounts.map(
-      ({ productLocationId, amount }) => new AreaAmount(productLocationId, amount)
-    );
+    this.quantity = quantity;
+    this.supplyDetails = new SupplyDetails(orderItem.supplyDetails);
   }
 
-  setAreaAmount(productLocationId: string, amount: number) {
-    const areaAmount = this._areaAmounts.find(a => a.productLocationId === productLocationId);
-    if (!areaAmount) {
-      return this.createNewAreaAmount(productLocationId, amount);
-    }
-    areaAmount.amount = amount;
+  get quantity(): number {
+    return this._quantity;
+  }
+  set quantity(qty: number) {
+    this._quantity = qty;
   }
 
-  createNewAreaAmount(productLocationId: string, amount: number) {
-    const newAreaAmount = new AreaAmount(productLocationId, amount);
-    this._areaAmounts.push(newAreaAmount);
+  get supplyDetails(): SupplyDetailsJson {
+    return this._supplyDetails.toJSON();
+  }
+  set supplyDetails(supplyDetails: SupplyDetailsJson) {
+    const newSupplyDetails = new SupplyDetails(supplyDetails);
+    this._supplyDetails = newSupplyDetails;
   }
 
-  get totalAmount(): number {
-    return this._areaAmounts.reduce((total, areaAmount) => areaAmount.amount + total, 0);
-  }
-
-  toJson(): OrderItemJson {
+  toJSON(): OrderProductJson {
     return {
       productId: this.productId,
-      areaAmounts: this.areaAmounts,
-      totalAmount: this.totalAmount,
+      quantity: this.quantity,
+      supplyDetails: this.supplyDetails,
     };
   }
 }
 
-type AreaAmountJson = Json<AreaAmount>;
+class SupplyDetails {
+  public readonly vendorId: string;
+  public readonly vendorRangeId: string;
+  public readonly packageType: string;
+  public readonly packageQuantity: number;
 
-class AreaAmount {
-  constructor(public productLocationId: string, public amount: number) {}
+  constructor(supplyDetails: SupplyDetailsJson) {
+    const { vendorId, vendorRangeId, packageType, packageQuantity } = supplyDetails;
+    this.vendorId = vendorId;
+    this.vendorRangeId = vendorRangeId;
+    this.packageType = packageType;
+    this.packageQuantity = packageQuantity;
+  }
 
-  toJson(): AreaAmountJson {
-    return {
-      productLocationId: this.productLocationId,
-      amount: this.amount,
-    };
+  toJSON(): Json<SupplyDetails> {
+    return Object.freeze({
+      vendorId: this.vendorId,
+      vendorRangeId: this.vendorRangeId,
+      packageQuantity: this.packageQuantity,
+      packageType: this.packageType,
+    });
   }
 }
