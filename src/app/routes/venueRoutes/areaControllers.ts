@@ -66,7 +66,6 @@ const removeStorageSpace: Controller = async req => {
   const { storageSpace } = bodySchema.parse(req.body);
   const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
   venueArea.removeStorageSpace(storageSpace);
-  console.log(venueArea.toJSON());
   const res = await venueArea.save();
   if (!res.success) throw res.error;
   return res;
@@ -83,7 +82,6 @@ const renameStorageSpace: Controller = async req => {
   const venueArea = await VenueArea.reconstituteById(venueAreaId, repo);
   venueArea.renameStorageSpace(storageSpace, newName);
   const res = await venueArea.save();
-  console.log(venueArea.toJSON());
   if (!res.success) throw res.error;
   return res;
 };
