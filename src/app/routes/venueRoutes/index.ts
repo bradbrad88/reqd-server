@@ -1,74 +1,34 @@
 import { Router } from "express";
-import expressAdaptor from "../../makeCallback";
-
+import expressAdaptor from "../../expressAdaptor";
+import { getOrderCommandRoutes, getOrderQueryRoutes } from "./orderControllers";
 import {
-  getVenueController,
-  updateVenueNameController,
-  deleteVenueController,
-} from "../../../domain/venues/venueControllers";
+  getVenueInventoryCommandRoutes,
+  getVenueInventoryQueryRoutes,
+} from "./inventoryControllers";
+import { getAreaCommandRoutes, getAreaQueryRoutes } from "./areaControllers";
 import {
-  createVendorController,
-  deleteVendorController,
-  getVendorDetailController,
-  getVendorsListController,
-} from "../../../domain/vendors/vendorControllers";
-import {
-  addProductToVenueAreaController,
-  createVenueAreaController,
-  deleteVenueAreaController,
-  getVenueAreaController,
-  getVenueAreasController,
-  removeProductFromAreaController,
-  setProductLocationParLevelController,
-} from "../../../domain/venueAreas.ts/venueAreaController";
-import {
-  createOrderController,
-  getOrderDetailController,
-  getOrderHistoryController,
-  getOrdersListController,
-  setProductAmountController,
-} from "../../../domain/orders/orderControllers";
-import { getUnitTypeController } from "../../../domain/scalars/unitTypeControllers";
-import { getPackageTypeController } from "../../../domain/scalars/packageTypeControllers";
-import { getUnitOfMeasurementController } from "../../../domain/scalars/unitOfMeasurementControllers";
-import { getProductRoutes } from "../../../domain/products/productControllers";
+  getPreferredVendorCommandRoutes,
+  getPreferredVendorQueryRoutes,
+} from "./vendorControllers";
 
 const router = Router({ mergeParams: true });
 
-router.get("/", expressAdaptor(getVenueController));
-router.patch("/", expressAdaptor(updateVenueNameController));
-router.delete("/", expressAdaptor(deleteVenueController));
+const orderCommandRoutes = getOrderCommandRoutes(expressAdaptor);
+const orderQueryRoutes = getOrderQueryRoutes(expressAdaptor);
+const inventoryCommandRoutes = getVenueInventoryCommandRoutes(expressAdaptor);
+const inventoryQueryRoutes = getVenueInventoryQueryRoutes(expressAdaptor);
+const areaCommandRoutes = getAreaCommandRoutes(expressAdaptor);
+const areaQueryRoutes = getAreaQueryRoutes(expressAdaptor);
+const vendorCommandRoutes = getPreferredVendorCommandRoutes(expressAdaptor);
+const vendorQueryRoutes = getPreferredVendorQueryRoutes(expressAdaptor);
 
-router.get("/unit-types/list", expressAdaptor(getUnitTypeController));
-router.get("/package-types/list", expressAdaptor(getPackageTypeController));
-router.get("/unit-of-measurements/list", expressAdaptor(getUnitOfMeasurementController));
-
-const productRoutes = getProductRoutes(expressAdaptor);
-router.use("/products", productRoutes);
-
-router.get("/vendors/list", expressAdaptor(getVendorsListController));
-router.get("/vendors/detail/:vendorId", expressAdaptor(getVendorDetailController));
-router.post("/vendors", expressAdaptor(createVendorController));
-router.delete("/vendors/:vendorId", expressAdaptor(deleteVendorController));
-
-router.get("/areas/list", expressAdaptor(getVenueAreasController));
-router.get("/areas/detail/:areaId", expressAdaptor(getVenueAreaController));
-router.post("/areas", expressAdaptor(createVenueAreaController));
-router.delete("/areas/:areaId", expressAdaptor(deleteVenueAreaController));
-router.post("/areas/:areaId/products", expressAdaptor(addProductToVenueAreaController));
-router.put(
-  "/areas/:areaId/products/:productLocation",
-  expressAdaptor(setProductLocationParLevelController)
-);
-router.delete(
-  "/areas/:areaId/products/:productLocation",
-  expressAdaptor(removeProductFromAreaController)
-);
-
-router.get("/orders/list", expressAdaptor(getOrdersListController));
-router.get("/orders/detail/:orderId", expressAdaptor(getOrderDetailController));
-router.post("/orders", expressAdaptor(createOrderController));
-router.post("/orders/:orderId/product-amount", expressAdaptor(setProductAmountController));
-router.get("/orders/history", expressAdaptor(getOrderHistoryController));
+router.use("/orders", orderCommandRoutes);
+router.use("/orders", orderQueryRoutes);
+router.use("/inventory", inventoryCommandRoutes);
+router.use("/inventory", inventoryQueryRoutes);
+router.use("/areas", areaCommandRoutes);
+router.use("/areas", areaQueryRoutes);
+router.use("/vendors", vendorCommandRoutes);
+router.use("/vendors", vendorQueryRoutes);
 
 export default router;
