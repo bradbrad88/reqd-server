@@ -4,3 +4,11 @@ export function moveArrayItem(arr: Array<any>, oldIndex: number, newIndex: numbe
   newArr.splice(newIndex, 0, item);
   return newArr;
 }
+
+export function createArrayOfLength(length: number) {
+  const arr = [];
+  for (let i = 0; i < length; i++) {
+    arr.push(i);
+  }
+  return arr;
+}
