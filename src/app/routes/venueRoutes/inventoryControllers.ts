@@ -4,7 +4,12 @@ import { Controller, ControllerAdaptor } from "../../../types/IController";
 import { Inventory } from "../../../domain/inventory/Inventory";
 import { getInventoryRepository, getVendorRangeRepository } from "../../repository";
 import { VendorRange } from "../../../domain/vendorRange/VendorRange";
-import { getVenueInventory } from "../../../domain/readModel/inventoryQueries";
+import {
+  getGlobalProducts,
+  getProductVendorOptions,
+  getVenueInventory,
+  getVenueInventoryItem,
+} from "../../../domain/readModel/inventoryQueries";
 
 const repo = getInventoryRepository();
 
@@ -33,13 +38,21 @@ const removeProductFromInventoryController: Controller = async req => {
 };
 
 const changeDefaultSupplyController: Controller = async req => {
-  const paramsSchema = z.object({ venueId: z.string() });
-  const bodySchema = z.object({ productId: z.string(), defaultSupply: z.string().nullable() });
-  const { venueId } = paramsSchema.parse(req.params);
-  const { productId, defaultSupply } = bodySchema.parse(req.body);
-  validateDefaultSupply(productId, defaultSupply);
-  const inventory = await Inventory.reconstituteById(venueId, productId, repo);
-  inventory.defaultSupply = defaultSupply;
+  const paramsSchema = z.object({ venueId: z.string(), productId: z.string() });
+  const bodySchema = z.object({
+    defaultSupply: z.string().nullable(),
+    isNew: z.boolean().optional(),
+  });
+  const { venueId, productId } = paramsSchema.parse(req.params);
+  const { defaultSupply, isNew } = bodySchema.parse(req.body);
+  await validateDefaultSupply(productId, defaultSupply);
+  let inventory: Inventory;
+  if (isNew) {
+    inventory = Inventory.create({ venueId, productId, defaultSupply }, repo);
+  } else {
+    inventory = await Inventory.reconstituteById(venueId, productId, repo);
+    inventory.defaultSupply = defaultSupply;
+  }
   const res = await inventory.save();
   if (!res.success) throw res.error;
   return res;
@@ -47,24 +60,53 @@ const changeDefaultSupplyController: Controller = async req => {
 
 const getVenueInventoryListController: Controller = async req => {
   const paramsSchema = z.object({ venueId: z.string() });
-  const querySchema = z.object({ query: z.string().optional() });
   const { venueId } = paramsSchema.parse(req.params);
-  const { query } = querySchema.parse(req.query);
-  const inventory = await getVenueInventory(venueId, query);
-  return inventory;
+  const querySchema = z.object({
+    query: z.string().optional(),
+    page: z.string().optional(),
+    pageSize: z.string().optional(),
+  });
+  const { query, page, pageSize } = querySchema.parse(req.query);
+  const transformedFilters = { query };
+  const pageValidated = parseInt(page || "1");
+  const pageSizeValidated = Math.min(parseInt(pageSize || "20"), 50);
+  const res = await getGlobalProducts(
+    venueId,
+    transformedFilters,
+    pageValidated,
+    pageSizeValidated
+  );
+  return res;
+};
+
+const getVenueInventoryDetailController: Controller = async req => {
+  const paramsSchema = z.object({ venueId: z.string(), productId: z.string() });
+  const { venueId, productId } = paramsSchema.parse(req.params);
+  return await getVenueInventoryItem(venueId, productId);
+};
+
+const getProductVendorOptionsController: Controller = async req => {
+  const paramsSchema = z.object({ venueId: z.string(), productId: z.string() });
+  const { venueId, productId } = paramsSchema.parse(req.params);
+  return await getProductVendorOptions(venueId, productId);
 };
 
 export const getVenueInventoryCommandRoutes = (controllerAdaptor: ControllerAdaptor) => {
   const router = Router({ mergeParams: true });
   router.post("/", controllerAdaptor(addProductToInventoryController));
   router.delete("/:productId", controllerAdaptor(removeProductFromInventoryController));
-  router.put("/", controllerAdaptor(changeDefaultSupplyController));
+  router.put("/:productId", controllerAdaptor(changeDefaultSupplyController));
   return router;
 };
 
 export const getVenueInventoryQueryRoutes = (controllerAdaptor: ControllerAdaptor) => {
   const router = Router({ mergeParams: true });
   router.get("/list", controllerAdaptor(getVenueInventoryListController));
+  router.get("/detail/:productId", controllerAdaptor(getVenueInventoryDetailController));
+  router.get(
+    "/detail/:productId/vendors",
+    controllerAdaptor(getProductVendorOptionsController)
+  );
   return router;
 };
 
