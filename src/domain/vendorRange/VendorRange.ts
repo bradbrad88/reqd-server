@@ -44,7 +44,7 @@ export class VendorRange extends AggregateRoot<VendorRangeRepository> {
     vendorRange: PartialBy<VendorRangeJson, "id">,
     repository: VendorRangeRepository
   ) {
-    const id = uuid();
+    const id = vendorRange.id || uuid();
     return new VendorRange({ ...vendorRange, id }, repository);
   }
 
