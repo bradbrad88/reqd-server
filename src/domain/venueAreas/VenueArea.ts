@@ -164,12 +164,13 @@ export default class VenueArea extends AggregateRoot<VenueAreaRepository> {
   setShelfCount(storageName: string, sectionId: string, count: number) {
     const space = this._getDetailedLayoutSpace(storageName);
     space.setShelfCount(sectionId, count);
-    return Object.keys(space.shelves);
+    return space.sections[sectionId].shelfLayout;
   }
 
   setSpotCount(storageName: string, shelfId: string, count: number) {
     const space = this._getDetailedLayoutSpace(storageName);
     space.setSpotCount(shelfId, count);
+    return space.shelves[shelfId].spotLayout;
   }
 
   removeSection(storageName: string, sectionId: string) {
